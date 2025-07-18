@@ -84,28 +84,50 @@ export const Settings = () => {
   // Busca todos os usuários cadastrados (ativos e inativos) para o Admin
   const fetchUsers = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      if (!user || !isAdmin) {
+        setUsers([]);
+        return;
+      }
+      const { data, error, status } = await supabase
         .from('profiles')
         .select('id, user_id, display_name, avatar_url, is_admin, is_active, created_at, updated_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error, 'Status:', status);
+        let errorMsg = error.message || 'Erro desconhecido.';
+        if (status === 401 || errorMsg.includes('permission')) {
+          errorMsg = 'Permissão insuficiente para listar usuários. Verifique se o usuário está autenticado como admin.';
+        }
+        toast({
+          title: "Erro",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        setUsers([]);
+        return;
+      }
 
-      const usersWithEmails = (data || []).map(profile => ({
-        ...profile,
-        email: profile.display_name || `user-${profile.user_id.slice(0, 8)}`
+      // Logging para depuração
+      console.log('fetchUsers result:', data);
+
+      const safeData = Array.isArray(data) ? data : [];
+      // Adiciona o campo 'email' manualmente usando user_id
+      const usersWithEmail = safeData.map(u => ({
+        ...u,
+        email: u.user_id === user?.id ? user?.email : '' // Para o próprio usuário, usa o e-mail autenticado; para outros, vazio
       }));
-
-      setUsers(usersWithEmails);
+      setUsers(usersWithEmail);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os usuários.",
+        description: error instanceof Error ? error.message : "Não foi possível carregar os usuários.",
         variant: "destructive",
       });
+      setUsers([]);
     }
-  }, []);
+  }, [isAdmin, user]);
 
   // Realtime listener para perfis ativos
   useEffect(() => {
@@ -304,25 +326,36 @@ export const Settings = () => {
         if (editingProfile.password.length < 6) {
           throw new Error('A senha deve ter pelo menos 6 caracteres');
         }
-        
         const { error: passwordError } = await supabase.auth.updateUser({
           password: editingProfile.password
         });
         if (passwordError) throw passwordError;
       }
 
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram atualizadas com sucesso.",
-      });
-
-      // Reset password fields
+      // Atualiza imediatamente o estado do usuário no front-end
       setEditingProfile(prev => ({
         ...prev,
+        display_name: editingProfile.display_name,
+        email: editingProfile.email,
+        avatar_url: editingProfile.avatar_url,
         password: '',
         confirmPassword: ''
       }));
       setShowPasswordFields(false);
+
+      // Atualiza o profile local se possível
+      if (profile) {
+        profile.display_name = editingProfile.display_name;
+        profile.avatar_url = editingProfile.avatar_url;
+      }
+      if (user) {
+        user.email = editingProfile.email;
+      }
+
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram atualizadas com sucesso.",
+      });
 
     } catch (error: unknown) {
       console.error('Error updating profile:', error);
