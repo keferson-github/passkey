@@ -230,16 +230,30 @@ export const Settings = () => {
         await fetchUsers();
         await fetchAllPasswordHistory();
       } else {
+        // Busca perfil atualizado do usuário comum
+        const { data: updatedProfile, error } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('user_id', user?.id)
+          .single();
+        if (!error && updatedProfile) {
+          setEditingProfile(prev => ({
+            ...prev,
+            display_name: updatedProfile.display_name,
+            email: user?.email || '', // Usa o e-mail do usuário autenticado
+            avatar_url: updatedProfile.avatar_url
+          }));
+        }
         await fetchUserPasswordHistory();
       }
     };
 
     fetchData();
-    
+
     // Check current theme
     const currentTheme = localStorage.getItem('theme');
     setIsDarkMode(currentTheme === 'dark');
-  }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory]);
+  }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, user?.id, user?.email]);
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     // Prevent admin from deactivating themselves
@@ -350,6 +364,25 @@ export const Settings = () => {
       }
       if (user) {
         user.email = editingProfile.email;
+      }
+
+      // Persiste e recarrega os dados do usuário após atualização
+      if (isAdmin) {
+        await fetchUsers();
+      } else {
+        // Para usuário comum, busca o próprio perfil atualizado
+        const { data: updatedProfile, error } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('user_id', user?.id)
+          .single();
+        if (!error && updatedProfile) {
+          setEditingProfile(prev => ({
+            ...prev,
+            display_name: updatedProfile.display_name,
+            avatar_url: updatedProfile.avatar_url
+          }));
+        }
       }
 
       toast({
