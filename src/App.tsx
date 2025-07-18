@@ -8,6 +8,7 @@ import { AuthProvider } from "@/components/auth/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import { Settings } from "@/components/settings/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,14 @@ const App = () => (
                     <Dashboard />
                   </ProtectedRoute>
                 } 
+              />
+              <Route 
+                path="/configuracoes" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
               />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<NotFound />} />

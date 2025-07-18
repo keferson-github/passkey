@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -23,7 +25,9 @@ import {
   UserCheck,
   UserX,
   Edit,
-  Trash2
+  Trash2,
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePasswords } from '@/hooks/usePasswords';
@@ -63,11 +67,21 @@ export const Settings = () => {
   const [editingProfile, setEditingProfile] = useState({
     display_name: profile?.display_name || '',
     email: user?.email || '',
-    avatar_url: profile?.avatar_url || ''
+    avatar_url: profile?.avatar_url || '',
+    password: '',
+    confirmPassword: '',
+    changePassword: false
   });
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false);
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const isAdmin = profile?.is_admin || user?.email === 'contato@techsolutionspro.com.br';
 
+  // Busca apenas usuários ativos e escuta atualizações em tempo real
+  // Busca todos os usuários cadastrados (ativos e inativos) para o Admin
   const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -76,14 +90,12 @@ export const Settings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Since we can't access auth.users directly, we'll use the user_id to get email from current user context
-      // or display the display_name as identifier
+
       const usersWithEmails = (data || []).map(profile => ({
         ...profile,
         email: profile.display_name || `user-${profile.user_id.slice(0, 8)}`
       }));
-      
+
       setUsers(usersWithEmails);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -94,6 +106,23 @@ export const Settings = () => {
       });
     }
   }, []);
+
+  // Realtime listener para perfis ativos
+  useEffect(() => {
+    let subscription: ReturnType<typeof supabase.channel> | null = null;
+    if (isAdmin) {
+      fetchUsers();
+      subscription = supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+          fetchUsers();
+        })
+        .subscribe();
+    }
+    return () => {
+      if (subscription) supabase.removeChannel(subscription);
+    };
+  }, [isAdmin, fetchUsers]);
 
   const fetchAllPasswordHistory = useCallback(async () => {
     try {
@@ -191,6 +220,16 @@ export const Settings = () => {
   }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory]);
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    // Prevent admin from deactivating themselves
+    if (userId === user?.id && currentStatus === true) {
+      toast({
+        title: "Ação não permitida",
+        description: "Você não pode desativar sua própria conta de administrador.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -199,8 +238,8 @@ export const Settings = () => {
 
       if (error) throw error;
 
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_active: !currentStatus } : user
+      setUsers(users.map(userItem => 
+        userItem.user_id === userId ? { ...userItem, is_active: !currentStatus } : userItem
       ));
 
       toast({
@@ -238,7 +277,8 @@ export const Settings = () => {
   const updateProfile = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Update profile in profiles table
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           display_name: editingProfile.display_name,
@@ -246,17 +286,50 @@ export const Settings = () => {
         })
         .eq('user_id', user?.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update email if changed
+      if (editingProfile.email !== user?.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: editingProfile.email
+        });
+        if (emailError) throw emailError;
+      }
+
+      // Update password if provided
+      if (editingProfile.password && editingProfile.password.length > 0) {
+        if (editingProfile.password !== editingProfile.confirmPassword) {
+          throw new Error('As senhas não coincidem');
+        }
+        if (editingProfile.password.length < 6) {
+          throw new Error('A senha deve ter pelo menos 6 caracteres');
+        }
+        
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: editingProfile.password
+        });
+        if (passwordError) throw passwordError;
+      }
 
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
       });
-    } catch (error) {
+
+      // Reset password fields
+      setEditingProfile(prev => ({
+        ...prev,
+        password: '',
+        confirmPassword: ''
+      }));
+      setShowPasswordFields(false);
+
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
+      const errorMessage = error instanceof Error ? error.message : "Não foi possível atualizar o perfil.";
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o perfil.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -273,8 +346,8 @@ export const Settings = () => {
 
       if (error) throw error;
 
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, ...profileData } : user
+      setUsers(users.map(userItem => 
+        userItem.user_id === userId ? { ...userItem, ...profileData } : userItem
       ));
 
       toast({
@@ -291,10 +364,112 @@ export const Settings = () => {
     }
   };
 
+  const handleEditUser = (userItem: UserProfile) => {
+    setEditingUser(userItem);
+    setIsEditingUser(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    setIsLoading(true);
+    try {
+      // Update profile
+      await updateUserProfile(editingUser.user_id, {
+        display_name: editingUser.display_name,
+        avatar_url: editingUser.avatar_url,
+        is_admin: editingUser.is_admin,
+        is_active: editingUser.is_active
+      });
+
+      setIsEditingUser(false);
+      setEditingUser(null);
+      fetchUsers(); // Refresh users list
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o usuário.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    // Prevent admin from deleting themselves
+    if (userId === user?.id) {
+      toast({
+        title: "Ação não permitida",
+        description: "Você não pode remover sua própria conta.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (window.confirm(`Tem certeza que deseja remover o usuário "${userName}"? Esta ação não pode ser desfeita.`)) {
+      try {
+        // First, delete user's passwords
+        const { error: passwordsError } = await supabase
+          .from('passwords')
+          .delete()
+          .eq('user_id', userId);
+
+        if (passwordsError) throw passwordsError;
+
+        // Then delete user profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('user_id', userId);
+
+        if (profileError) throw profileError;
+
+        // Finally, delete user from auth (requires admin privileges)
+        const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+        
+        if (authError) {
+          console.warn('Could not delete user from auth:', authError);
+          // Continue anyway, as profile deletion is more important
+        }
+
+        // Update local state
+        setUsers(users.filter(userItem => userItem.user_id !== userId));
+
+        toast({
+          title: "Usuário removido",
+          description: `Usuário "${userName}" foi removido com sucesso.`,
+        });
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível remover o usuário.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Função para editar perfil próprio
+  const handleEditProfile = () => {
+    setEditingProfile({
+      display_name: profile?.display_name || '',
+      email: user?.email || '',
+      avatar_url: profile?.avatar_url || '',
+      password: '',
+      confirmPassword: '',
+      changePassword: false
+    });
+    setIsEditingProfile(true);
+  };
+
   const getInitials = (name: string) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
   };
 
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="container mx-auto max-w-6xl">
@@ -307,6 +482,14 @@ export const Settings = () => {
               Admin
             </Badge>
           )}
+          <Button
+            variant="outline"
+            className="ml-auto flex items-center gap-2"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar para o Dashboard
+          </Button>
         </div>
 
         <Tabs defaultValue="account" className="space-y-6">
@@ -351,9 +534,12 @@ export const Settings = () => {
                   <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
+                    type="email"
                     value={editingProfile.email}
-                    disabled
-                    className="bg-muted"
+                    onChange={(e) => setEditingProfile({
+                      ...editingProfile,
+                      email: e.target.value
+                    })}
                   />
                 </div>
 
@@ -370,14 +556,59 @@ export const Settings = () => {
                   />
                 </div>
 
-                <Button 
-                  onClick={updateProfile}
-                  disabled={isLoading}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isLoading ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="show-password"
+                      checked={showPasswordFields}
+                      onChange={(e) => setShowPasswordFields(e.target.checked)}
+                    />
+                    <Label htmlFor="show-password">Alterar senha</Label>
+                  </div>
+
+                  {showPasswordFields && (
+                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label htmlFor="password">Nova senha</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={editingProfile.password}
+                          onChange={(e) => setEditingProfile({
+                            ...editingProfile,
+                            password: e.target.value
+                          })}
+                          placeholder="Digite a nova senha"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirm-password">Confirmar senha</Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          value={editingProfile.confirmPassword}
+                          onChange={(e) => setEditingProfile({
+                            ...editingProfile,
+                            confirmPassword: e.target.value
+                          })}
+                          placeholder="Confirme a nova senha"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    onClick={updateProfile}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -423,29 +654,27 @@ export const Settings = () => {
                 <CardHeader>
                   <CardTitle>Gerenciamento de Usuários</CardTitle>
                   <CardDescription>
-                    Monitore e gerencie usuários do sistema
+                    Monitore e gerencie todos os usuários cadastrados no sistema em tempo real
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {users.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    {users.map((userItem) => (
+                      <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <Avatar>
-                            <AvatarImage src={user.avatar_url} />
+                            <AvatarImage src={userItem.avatar_url} />
                             <AvatarFallback>
-                              {getInitials(user.display_name)}
+                              {getInitials(userItem.display_name)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{user.display_name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="font-medium">{userItem.display_name}</p>
+                            <p className="text-sm text-muted-foreground">{userItem.email}</p>
                             <div className="flex gap-2 mt-1">
-                              {user.is_admin && (
-                                <Badge variant="secondary">Admin</Badge>
-                              )}
-                              <Badge variant={user.is_active ? "default" : "destructive"}>
-                                {user.is_active ? 'Ativo' : 'Inativo'}
+                              <Badge variant={userItem.is_admin ? "secondary" : "default"}>{userItem.is_admin ? "Admin" : "Usuário Comum"}</Badge>
+                              <Badge variant={userItem.is_active ? "default" : "destructive"}>
+                                {userItem.is_active ? 'Ativo' : 'Inativo'}
                               </Badge>
                             </div>
                           </div>
@@ -454,17 +683,43 @@ export const Settings = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => toggleUserStatus(user.id, user.is_active)}
+                            onClick={() => handleEditUser(userItem)}
+                            title="Editar usuário"
                           >
-                            {user.is_active ? (
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleUserStatus(userItem.user_id, userItem.is_active)}
+                            title={userItem.is_active ? "Desativar usuário" : "Ativar usuário"}
+                            disabled={userItem.user_id === user?.id && userItem.is_admin}
+                          >
+                            {userItem.is_active ? (
                               <UserX className="w-4 h-4" />
                             ) : (
                               <UserCheck className="w-4 h-4" />
                             )}
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(userItem.user_id, userItem.display_name)}
+                            title="Remover usuário"
+                            className="hover:bg-destructive hover:text-destructive-foreground"
+                            disabled={userItem.user_id === user?.id && userItem.is_admin}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
+                    {users.length === 0 && (
+                      <div className="text-center py-8">
+                        <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">Nenhum usuário cadastrado encontrado</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -523,6 +778,188 @@ export const Settings = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog para editar usuário */}
+      <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Edite as informações do usuário selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-username">Nome de usuário</Label>
+                <Input
+                  id="edit-username"
+                  value={editingUser.display_name || ''}
+                  onChange={(e) => setEditingUser({
+                    ...editingUser,
+                    display_name: e.target.value
+                  })}
+                  placeholder="Digite o nome de usuário"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editingUser.email || ''}
+                  onChange={(e) => setEditingUser({
+                    ...editingUser,
+                    email: e.target.value
+                  })}
+                  placeholder="Digite o email"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-is-admin">Tipo de usuário</Label>
+                <Select
+                  value={editingUser.is_admin ? 'admin' : 'common'}
+                  onValueChange={(value) => setEditingUser({
+                    ...editingUser,
+                    is_admin: value === 'admin'
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="common">Usuário Comum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-is-active">Status</Label>
+                <Select
+                  value={editingUser.is_active ? 'active' : 'inactive'}
+                  onValueChange={(value) => setEditingUser({
+                    ...editingUser,
+                    is_active: value === 'active'
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditingUser(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateUser}>
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar perfil */}
+      <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogDescription>
+              Edite suas informações pessoais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="profile-username">Nome de usuário</Label>
+              <Input
+                id="profile-username"
+                value={editingProfile.display_name || ''}
+                onChange={(e) => setEditingProfile({
+                  ...editingProfile,
+                  display_name: e.target.value
+                })}
+                placeholder="Digite o nome de usuário"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="profile-email">Email</Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={editingProfile.email || ''}
+                onChange={(e) => setEditingProfile({
+                  ...editingProfile,
+                  email: e.target.value
+                })}
+                placeholder="Digite o email"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="change-password"
+                checked={editingProfile.changePassword}
+                onChange={(e) => setEditingProfile({
+                  ...editingProfile,
+                  changePassword: e.target.checked,
+                  password: e.target.checked ? editingProfile.password : '',
+                  confirmPassword: e.target.checked ? editingProfile.confirmPassword : ''
+                })}
+              />
+              <Label htmlFor="change-password">Alterar senha</Label>
+            </div>
+            {editingProfile.changePassword && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="profile-password">Nova senha</Label>
+                  <Input
+                    id="profile-password"
+                    type="password"
+                    value={editingProfile.password || ''}
+                    onChange={(e) => setEditingProfile({
+                      ...editingProfile,
+                      password: e.target.value
+                    })}
+                    placeholder="Digite a nova senha"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="profile-confirm-password">Confirmar nova senha</Label>
+                  <Input
+                    id="profile-confirm-password"
+                    type="password"
+                    value={editingProfile.confirmPassword || ''}
+                    onChange={(e) => setEditingProfile({
+                      ...editingProfile,
+                      confirmPassword: e.target.value
+                    })}
+                    placeholder="Confirme a nova senha"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditingProfile(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={updateProfile}>
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
