@@ -76,6 +76,66 @@ export const Dashboard = () => {
     }
   };
 
+  const copyAllPasswordData = async (password: Password) => {
+    try {
+      const formattedData = [
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '🔐 INFORMAÇÕES DA SENHA',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+        `📝 Título: ${password.title}`,
+        `📧 Email: ${password.email}`,
+        `🔑 Senha: ${password.password_hash}`,
+        '',
+        '📂 CATEGORIZAÇÃO',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `🏷️ Categoria: ${password.category.name}`,
+        `🔖 Tipo de Conta: ${password.account_type.name}`,
+        ...(password.subcategory ? [`🏷️ Subcategoria: ${password.subcategory.name}`] : []),
+        '',
+        ...(password.description ? [
+          '📋 DESCRIÇÃO',
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+          `📄 ${password.description}`,
+          ''
+        ] : []),
+        '📅 INFORMAÇÕES ADICIONAIS',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `📅 Criado em: ${new Date(password.created_at).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`,
+        `🔄 Atualizado em: ${new Date(password.updated_at).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '🔒 Gerado pelo PassKey - Gerenciador de Senhas',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+      ].flat().join('\n');
+
+      await navigator.clipboard.writeText(formattedData);
+      toast({
+        title: "Dados copiados!",
+        description: "Todas as informações da senha foram copiadas para a área de transferência.",
+      });
+    } catch (err) {
+      console.error('Erro ao copiar dados da senha:', err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar as informações da senha.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeletePassword = async (id: string, title: string) => {
     if (window.confirm(`Tem certeza que deseja excluir a senha "${title}"?`)) {
       deletePassword(id);
@@ -352,7 +412,7 @@ export const Dashboard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(`${password.email}:${password.password_hash}`, 'Credenciais')}
+                      onClick={() => copyAllPasswordData(password)}
                       className="flex-1"
                     >
                       <Copy className="w-4 h-4 mr-1" />
