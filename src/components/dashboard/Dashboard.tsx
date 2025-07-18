@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Search, 
   Plus, 
@@ -18,7 +20,9 @@ import {
   Edit,
   Trash2,
   Filter,
-  Loader2
+  Loader2,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PasswordGenerator } from './PasswordGenerator';
@@ -37,6 +41,13 @@ export const Dashboard = () => {
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAccountTypes, setSelectedAccountTypes] = useState<string[]>([]);
+  const [passwordStrengthFilter, setPasswordStrengthFilter] = useState<'all' | 'strong' | 'weak'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'recent' | 'older'>('all');
 
   const togglePasswordVisibility = (id: string) => {
     const newVisible = new Set(visiblePasswords);
@@ -48,14 +59,72 @@ export const Dashboard = () => {
     setVisiblePasswords(newVisible);
   };
 
-  const filteredPasswords = passwords.filter(password =>
-    password.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.account_type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.subcategory?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPasswords = passwords.filter(password => {
+    // Text search filter
+    const matchesSearch = password.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      password.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      password.account_type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      password.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      password.subcategory?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      password.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Category filter
+    const matchesCategory = selectedCategories.length === 0 || 
+      selectedCategories.includes(password.category.name);
+
+    // Account type filter
+    const matchesAccountType = selectedAccountTypes.length === 0 || 
+      selectedAccountTypes.includes(password.account_type.name);
+
+    // Password strength filter
+    const passwordLength = password.password_hash.length;
+    const matchesStrength = passwordStrengthFilter === 'all' ||
+      (passwordStrengthFilter === 'strong' && passwordLength >= 12) ||
+      (passwordStrengthFilter === 'weak' && passwordLength < 8);
+
+    // Date filter
+    const daysDiff = Math.floor(
+      (new Date().getTime() - new Date(password.created_at).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const matchesDate = dateFilter === 'all' ||
+      (dateFilter === 'recent' && daysDiff <= 7) ||
+      (dateFilter === 'older' && daysDiff > 7);
+
+    return matchesSearch && matchesCategory && matchesAccountType && matchesStrength && matchesDate;
+  });
+
+  // Filter management functions
+  const toggleCategoryFilter = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const toggleAccountTypeFilter = (accountType: string) => {
+    setSelectedAccountTypes(prev => 
+      prev.includes(accountType) 
+        ? prev.filter(at => at !== accountType)
+        : [...prev, accountType]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedAccountTypes([]);
+    setPasswordStrengthFilter('all');
+    setDateFilter('all');
+  };
+
+  // Get unique categories and account types
+  const uniqueCategories = [...new Set(passwords.map(p => p.category.name))].sort();
+  const uniqueAccountTypes = [...new Set(passwords.map(p => p.account_type.name))].sort();
+
+  const hasActiveFilters = selectedCategories.length > 0 || 
+    selectedAccountTypes.length > 0 || 
+    passwordStrengthFilter !== 'all' || 
+    dateFilter !== 'all';
 
   const getInitials = (name: string) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
@@ -298,20 +367,177 @@ export const Dashboard = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filtros
-          </Button>
-          
-          <div className="flex gap-2">
-            <Badge variant="secondary">Todas ({isLoading ? 0 : passwords.length})</Badge>
-            {!isLoading && [...new Set(passwords.map(p => p.category.name))].map(category => (
-              <Badge key={category} variant="outline">
-                {category} ({passwords.filter(p => p.category.name === category).length})
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant={showFilters ? "default" : "outline"} 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+              <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </Button>
+            
+            <div className="flex gap-2">
+              <Badge variant="secondary">
+                {filteredPasswords.length} de {passwords.length} senhas
               </Badge>
-            ))}
+              
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-6 px-2 text-xs"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Category Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Categorias</label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {uniqueCategories.map(category => (
+                      <div key={category} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`category-${category}`}
+                          checked={selectedCategories.includes(category)}
+                          onCheckedChange={() => toggleCategoryFilter(category)}
+                        />
+                        <label
+                          htmlFor={`category-${category}`}
+                          className="text-sm cursor-pointer flex-1"
+                        >
+                          {category}
+                        </label>
+                        <Badge variant="outline" className="text-xs">
+                          {passwords.filter(p => p.category.name === category).length}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Account Type Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipos de Conta</label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {uniqueAccountTypes.map(accountType => (
+                      <div key={accountType} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`account-${accountType}`}
+                          checked={selectedAccountTypes.includes(accountType)}
+                          onCheckedChange={() => toggleAccountTypeFilter(accountType)}
+                        />
+                        <label
+                          htmlFor={`account-${accountType}`}
+                          className="text-sm cursor-pointer flex-1"
+                        >
+                          {accountType}
+                        </label>
+                        <Badge variant="outline" className="text-xs">
+                          {passwords.filter(p => p.account_type.name === accountType).length}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Password Strength Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Força da Senha</label>
+                  <Select value={passwordStrengthFilter} onValueChange={(value: 'all' | 'strong' | 'weak') => setPasswordStrengthFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a força" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as senhas</SelectItem>
+                      <SelectItem value="strong">Senhas fortes (12+ caracteres)</SelectItem>
+                      <SelectItem value="weak">Senhas fracas (&lt;8 caracteres)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Data de Criação</label>
+                  <Select value={dateFilter} onValueChange={(value: 'all' | 'recent' | 'older') => setDateFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as datas</SelectItem>
+                      <SelectItem value="recent">Últimos 7 dias</SelectItem>
+                      <SelectItem value="older">Mais de 7 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {hasActiveFilters && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm font-medium">Filtros ativos:</span>
+                    {selectedCategories.map(category => (
+                      <Badge key={category} variant="secondary" className="text-xs">
+                        {category}
+                        <button
+                          onClick={() => toggleCategoryFilter(category)}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {selectedAccountTypes.map(accountType => (
+                      <Badge key={accountType} variant="secondary" className="text-xs">
+                        {accountType}
+                        <button
+                          onClick={() => toggleAccountTypeFilter(accountType)}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {passwordStrengthFilter !== 'all' && (
+                      <Badge variant="secondary" className="text-xs">
+                        {passwordStrengthFilter === 'strong' ? 'Senhas fortes' : 'Senhas fracas'}
+                        <button
+                          onClick={() => setPasswordStrengthFilter('all')}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    {dateFilter !== 'all' && (
+                      <Badge variant="secondary" className="text-xs">
+                        {dateFilter === 'recent' ? 'Últimos 7 dias' : 'Mais de 7 dias'}
+                        <button
+                          onClick={() => setDateFilter('all')}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
         </div>
 
         {/* Passwords Grid */}
