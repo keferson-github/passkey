@@ -13,6 +13,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 interface AddPasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 interface Category {
@@ -34,7 +35,7 @@ interface Subcategory {
   icon: string;
 }
 
-export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOpenChange }) => {
+export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOpenChange, onSuccess }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -196,6 +197,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
 
       resetForm();
       onOpenChange(false);
+      onSuccess?.();
 
     } catch (error: unknown) {
       console.error('Erro ao salvar senha:', error);
@@ -246,7 +248,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
             <Input
               id="email"
               type="email"
-              placeholder="usuario@exemplo.com"
+              placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

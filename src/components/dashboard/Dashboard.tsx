@@ -17,14 +17,19 @@ import {
   Copy,
   Edit,
   Trash2,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { PasswordGenerator } from './PasswordGenerator';
 import { AddPasswordDialog } from './AddPasswordDialog';
+import { usePasswords, usePasswordStats } from '@/hooks/usePasswords';
+import { toast } from '@/hooks/use-toast';
 
 export const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
+  const { passwords, isLoading, refetch, deletePassword } = usePasswords();
+  const { stats } = usePasswordStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [showPasswordGenerator, setShowPasswordGenerator] = useState(false);
   const [showAddPassword, setShowAddPassword] = useState(false);
@@ -40,36 +45,11 @@ export const Dashboard = () => {
     setVisiblePasswords(newVisible);
   };
 
-  // Mock data - será substituído por dados reais do banco
-  const mockPasswords = [
-    {
-      id: '1',
-      title: 'Gmail Principal',
-      email: 'usuario@gmail.com',
-      password: 'MinhaSenhaSegura123!',
-      category: 'Social Media',
-      accountType: 'Google',
-      subcategory: 'Gmail',
-      description: 'Conta principal do Gmail',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      title: 'LinkedIn Profissional',
-      email: 'usuario@empresa.com',
-      password: 'LinkedIn@2024#Pro',
-      category: 'Work & Business',
-      accountType: 'LinkedIn',
-      subcategory: 'LinkedIn',
-      description: 'Perfil profissional LinkedIn',
-      createdAt: '2024-01-10'
-    }
-  ];
-
-  const filteredPasswords = mockPasswords.filter(password =>
+  const filteredPasswords = passwords.filter(password =>
     password.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     password.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.accountType.toLowerCase().includes(searchTerm.toLowerCase())
+    password.account_type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    password.category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getInitials = (name: string) => {
@@ -79,11 +59,29 @@ export const Dashboard = () => {
   const copyToClipboard = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      // Toast notification will be added later
-      console.log(`${label} copiado para a área de transferência`);
+      toast({
+        title: "Copiado!",
+        description: `${label} copiado para a área de transferência.`,
+      });
     } catch (err) {
       console.error('Erro ao copiar:', err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar para a área de transferência.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleDeletePassword = async (id: string, title: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir a senha "${title}"?`)) {
+      deletePassword(id);
+    }
+  };
+
+  const handleAddPasswordSuccess = () => {
+    setShowAddPassword(false);
+    refetch();
   };
 
   return (
@@ -165,7 +163,7 @@ export const Dashboard = () => {
                 <Shield className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total de senhas</p>
-                  <p className="text-2xl font-bold">{mockPasswords.length}</p>
+                  <p className="text-2xl font-bold">{isLoading ? '-' : stats.total}</p>
                 </div>
               </div>
             </CardContent>
@@ -177,7 +175,7 @@ export const Dashboard = () => {
                 <Key className="w-5 h-5 text-success" />
                 <div>
                   <p className="text-sm text-muted-foreground">Senhas fortes</p>
-                  <p className="text-2xl font-bold">2</p>
+                  <p className="text-2xl font-bold">{isLoading ? '-' : stats.strong}</p>
                 </div>
               </div>
             </CardContent>
@@ -186,10 +184,10 @@ export const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-warning" />
+                <Shield className="w-5 h-5 text-warning" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Categorias</p>
-                  <p className="text-2xl font-bold">2</p>
+                  <p className="text-sm text-muted-foreground">Senhas fracas</p>
+                  <p className="text-2xl font-bold">{isLoading ? '-' : stats.weak}</p>
                 </div>
               </div>
             </CardContent>
@@ -198,10 +196,10 @@ export const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-muted-foreground" />
+                <Plus className="w-5 h-5 text-info" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Última atualização</p>
-                  <p className="text-sm">Hoje</p>
+                  <p className="text-sm text-muted-foreground">Recentes (7 dias)</p>
+                  <p className="text-2xl font-bold">{isLoading ? '-' : stats.recent}</p>
                 </div>
               </div>
             </CardContent>
@@ -216,42 +214,55 @@ export const Dashboard = () => {
           </Button>
           
           <div className="flex gap-2">
-            <Badge variant="secondary">Todas (2)</Badge>
-            <Badge variant="outline">Social Media (1)</Badge>
-            <Badge variant="outline">Work & Business (1)</Badge>
+            <Badge variant="secondary">Todas ({isLoading ? 0 : passwords.length})</Badge>
+            {!isLoading && [...new Set(passwords.map(p => p.category.name))].map(category => (
+              <Badge key={category} variant="outline">
+                {category} ({passwords.filter(p => p.category.name === category).length})
+              </Badge>
+            ))}
           </div>
         </div>
 
         {/* Passwords Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredPasswords.map((password) => (
-            <Card key={password.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{password.title}</CardTitle>
-                    <CardDescription>{password.email}</CardDescription>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="ml-2">Carregando senhas...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredPasswords.map((password) => (
+              <Card key={password.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{password.title}</CardTitle>
+                      <CardDescription>{password.email}</CardDescription>
+                    </div>
+                    
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDeletePassword(password.id, password.title)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
+                </CardHeader>
               
               <CardContent>
                 <div className="space-y-3">
                   {/* Category and Type */}
                   <div className="flex gap-2">
-                    <Badge variant="outline">{password.category}</Badge>
-                    <Badge variant="secondary">{password.accountType}</Badge>
+                    <Badge variant="outline">{password.category.name}</Badge>
+                    <Badge variant="secondary">{password.account_type.name}</Badge>
                     {password.subcategory && (
-                      <Badge variant="outline">{password.subcategory}</Badge>
+                      <Badge variant="outline">{password.subcategory.name}</Badge>
                     )}
                   </div>
 
@@ -261,7 +272,7 @@ export const Dashboard = () => {
                     <div className="flex items-center gap-2">
                       <Input
                         type={visiblePasswords.has(password.id) ? "text" : "password"}
-                        value={password.password}
+                        value={password.password_hash}
                         readOnly
                         className="flex-1"
                       />
@@ -279,7 +290,7 @@ export const Dashboard = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(password.password, 'Senha')}
+                        onClick={() => copyToClipboard(password.password_hash, 'Senha')}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -308,7 +319,7 @@ export const Dashboard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(`${password.email}:${password.password}`, 'Credenciais')}
+                      onClick={() => copyToClipboard(`${password.email}:${password.password_hash}`, 'Credenciais')}
                       className="flex-1"
                     >
                       <Copy className="w-4 h-4 mr-1" />
@@ -320,9 +331,10 @@ export const Dashboard = () => {
             </Card>
           ))}
         </div>
+        )}
 
         {/* Empty State */}
-        {filteredPasswords.length === 0 && (
+        {!isLoading && filteredPasswords.length === 0 && (
           <div className="text-center py-12">
             <Shield className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
@@ -350,7 +362,8 @@ export const Dashboard = () => {
       
       <AddPasswordDialog 
         open={showAddPassword} 
-        onOpenChange={setShowAddPassword} 
+        onOpenChange={setShowAddPassword}
+        onSuccess={handleAddPasswordSuccess} 
       />
     </div>
   );
