@@ -12,7 +12,7 @@ import {
   Shield, 
   Key, 
   User, 
-  Settings, 
+  Settings as SettingsIcon, 
   LogOut,
   Eye,
   EyeOff,
@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { PasswordGenerator } from './PasswordGenerator';
 import { AddPasswordDialog } from './AddPasswordDialog';
 import { EditPasswordDialog } from './EditPasswordDialog';
+import { Settings } from '../settings/Settings';
 import { usePasswords, usePasswordStats, Password } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
 
@@ -39,6 +40,7 @@ export const Dashboard = () => {
   const [showPasswordGenerator, setShowPasswordGenerator] = useState(false);
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   
@@ -290,6 +292,14 @@ export const Dashboard = () => {
               </Button>
 
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                </Button>
+
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={profile?.avatar_url} />
                   <AvatarFallback className="text-xs">
@@ -693,6 +703,21 @@ export const Dashboard = () => {
         password={editingPassword}
         onSuccess={handleEditPasswordSuccess} 
       />
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h1 className="text-xl font-bold">Configurações</h1>
+            <Button variant="ghost" onClick={() => setShowSettings(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="overflow-y-auto">
+            <Settings />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
