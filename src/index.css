@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PassKey - Modern Password Manager Design System 
+GitHub-inspired theme with cybersecurity aesthetics
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* GitHub-inspired Light Theme */
+    --background: 0 0% 100%;
+    --foreground: 213 27% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 27% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 27% 8%;
+
+    /* Security-focused primary colors */
+    --primary: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 213 94% 60%;
+
+    /* GitHub-style secondary */
+    --secondary: 210 12% 95%;
+    --secondary-foreground: 213 27% 8%;
+
+    --muted: 210 12% 95%;
+    --muted-foreground: 213 9% 45%;
+
+    --accent: 210 12% 95%;
+    --accent-foreground: 213 27% 8%;
+
+    /* Security alert colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --warning: 35 92% 62%;
+    --warning-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* GitHub-style borders and inputs */
+    --border: 214 13% 87%;
+    --input: 214 13% 87%;
+    --ring: 213 94% 68%;
+
+    /* Security gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 60%));
+    --gradient-security: linear-gradient(135deg, hsl(213 94% 68%), hsl(269 100% 75%));
+    --gradient-danger: linear-gradient(135deg, hsl(0 84% 60%), hsl(14 100% 57%));
+
+    /* Shadows with security theme */
+    --shadow-primary: 0 10px 30px -10px hsl(213 94% 68% / 0.3);
+    --shadow-glow: 0 0 40px hsl(213 94% 68% / 0.2);
+    --shadow-card: 0 1px 3px hsl(213 27% 8% / 0.1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* GitHub Dark Theme */
+    --background: 216 13% 7%;
+    --foreground: 213 31% 91%;
+
+    --card: 216 13% 9%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 216 13% 9%;
+    --popover-foreground: 213 31% 91%;
+
+    /* Security-focused dark primary */
+    --primary: 213 94% 68%;
+    --primary-foreground: 216 13% 7%;
+    --primary-hover: 213 94% 75%;
+
+    --secondary: 214 13% 15%;
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 214 13% 15%;
+    --muted-foreground: 213 9% 64%;
+
+    --accent: 214 13% 15%;
+    --accent-foreground: 213 31% 91%;
+
+    /* Security alert colors - dark mode */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --warning: 35 92% 62%;
+    --warning-foreground: 0 0% 100%;
+    
+    --success: 142 71% 55%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 214 13% 21%;
+    --input: 214 13% 21%;
+    --ring: 213 94% 68%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 75%));
+    --gradient-security: linear-gradient(135deg, hsl(213 94% 68%), hsl(269 100% 75%));
+    --gradient-danger: linear-gradient(135deg, hsl(0 84% 60%), hsl(14 100% 57%));
+
+    /* Dark mode shadows */
+    --shadow-primary: 0 10px 30px -10px hsl(213 94% 68% / 0.4);
+    --shadow-glow: 0 0 40px hsl(213 94% 68% / 0.3);
+    --shadow-card: 0 1px 3px hsl(216 13% 7% / 0.5);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
