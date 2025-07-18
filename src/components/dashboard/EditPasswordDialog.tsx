@@ -54,7 +54,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedAccountType, setSelectedAccountType] = useState('');
-  const [selectedSubcategory, setSelectedSubcategory] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('none');
   
   // Data state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -76,27 +76,30 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
       loadSubcategories(selectedAccountType);
     } else {
       setSubcategories([]);
-      setSelectedSubcategory('');
+      setSelectedSubcategory('none');
     }
   }, [selectedAccountType]);
 
   // Populate form when password changes
   useEffect(() => {
     if (password && open) {
+      console.log('EditPasswordDialog: Populating form with password data:', password);
       setTitle(password.title);
       setEmail(password.email);
       setPasswordValue(password.password_hash);
       setDescription(password.description || '');
       setSelectedCategory(password.category.id);
       setSelectedAccountType(password.account_type.id);
-      // Don't set subcategory immediately - let it be set after subcategories are loaded
+      // Set subcategory to 'none' initially, will be updated when subcategories load
+      setSelectedSubcategory('none');
     }
   }, [password, open]);
 
   // Set subcategory after subcategories are loaded and password data is available
   useEffect(() => {
     if (password && subcategories.length > 0 && selectedAccountType === password.account_type.id) {
-      setSelectedSubcategory(password.subcategory?.id || '');
+      console.log('EditPasswordDialog: Setting subcategory:', password.subcategory?.id || 'none');
+      setSelectedSubcategory(password.subcategory?.id || 'none');
     }
   }, [subcategories, password, selectedAccountType]);
 
@@ -171,7 +174,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
     setDescription('');
     setSelectedCategory('');
     setSelectedAccountType('');
-    setSelectedSubcategory('');
+    setSelectedSubcategory('none');
     setShowPassword(false);
   };
 
@@ -185,7 +188,16 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
       email,
       passwordValue,
       selectedCategory,
-      selectedAccountType
+      selectedAccountType,
+      formData: {
+        title,
+        email,
+        passwordValue,
+        description,
+        selectedCategory,
+        selectedAccountType,
+        selectedSubcategory
+      }
     });
     
     if (!user || !password) {
@@ -212,10 +224,10 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
       const updateData = {
         category_id: selectedCategory,
         account_type_id: selectedAccountType,
-        subcategory_id: selectedSubcategory || null,
+        subcategory_id: selectedSubcategory === 'none' ? null : selectedSubcategory,
         title,
         email,
-        password_hash: passwordValue, // This should be encrypted in production
+        password_hash: passwordValue,
         description: description || null,
         updated_at: new Date().toISOString()
       };
@@ -255,22 +267,23 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
     }
   };
 
-  const handleClose = () => {
-    resetForm();
-    onOpenChange(false);
-  };
-
   // Reset form when dialog is closed
   useEffect(() => {
     if (!open) {
-      resetForm();
+      // Delay reset to avoid visual glitches
+      setTimeout(() => {
+        resetForm();
+      }, 150);
     }
   }, [open]);
 
-  if (!password) return null;
+  if (!password && open) {
+    console.log('EditPasswordDialog: No password provided but dialog is open');
+    return null;
+  }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -340,7 +353,11 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
           {/* Category Selection */}
           <div className="space-y-2">
             <Label htmlFor="edit-category">Categoria *</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
+            <Select 
+              value={selectedCategory || ''} 
+              onValueChange={setSelectedCategory} 
+              required
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
@@ -357,7 +374,11 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
           {/* Account Type Selection */}
           <div className="space-y-2">
             <Label htmlFor="edit-account-type">Tipo de Conta *</Label>
-            <Select value={selectedAccountType} onValueChange={setSelectedAccountType} required>
+            <Select 
+              value={selectedAccountType || ''} 
+              onValueChange={setSelectedAccountType} 
+              required
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de conta" />
               </SelectTrigger>
@@ -375,12 +396,15 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
           {subcategories.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="edit-subcategory">Subcategoria</Label>
-              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+              <Select 
+                value={selectedSubcategory || 'none'} 
+                onValueChange={(value) => setSelectedSubcategory(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma subcategoria (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {subcategories.map((subcategory) => (
                     <SelectItem key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
@@ -408,7 +432,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={() => onOpenChange(false)}
               className="flex-1"
             >
               Cancelar

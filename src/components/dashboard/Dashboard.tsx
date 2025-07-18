@@ -89,8 +89,21 @@ export const Dashboard = () => {
 
   const handleEditPassword = (password: Password) => {
     console.log('Dashboard: handleEditPassword called with password:', password);
+    console.log('Dashboard: Current states before edit:', {
+      showEditPassword,
+      editingPassword
+    });
     setEditingPassword(password);
     setShowEditPassword(true);
+    console.log('Dashboard: States after setting edit:', {
+      passwordToEdit: password,
+      dialogWillOpen: true
+    });
+  };
+
+  const handleEditPasswordClose = () => {
+    setShowEditPassword(false);
+    setEditingPassword(null);
   };
 
   const handleEditPasswordSuccess = () => {
@@ -388,7 +401,7 @@ export const Dashboard = () => {
 
       <EditPasswordDialog 
         open={showEditPassword} 
-        onOpenChange={setShowEditPassword}
+        onOpenChange={handleEditPasswordClose}
         password={editingPassword}
         onSuccess={handleEditPasswordSuccess} 
       />

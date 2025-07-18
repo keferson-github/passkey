@@ -102,7 +102,15 @@ export const usePasswords = () => {
       updates 
     }: { 
       id: string; 
-      updates: Partial<Pick<Password, 'title' | 'email' | 'description'>> 
+      updates: {
+        title?: string;
+        email?: string;
+        password_hash?: string;
+        description?: string | null;
+        category_id?: string;
+        account_type_id?: string;
+        subcategory_id?: string | null;
+      }
     }) => {
       const { error } = await supabase
         .from('passwords')
