@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, EyeOff, Shield, Key } from 'lucide-react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export const AuthPage = () => {
   const { signIn, signUp } = useAuth();

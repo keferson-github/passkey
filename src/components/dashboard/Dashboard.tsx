@@ -20,10 +20,11 @@ import {
   Filter,
   Loader2
 } from 'lucide-react';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { PasswordGenerator } from './PasswordGenerator';
 import { AddPasswordDialog } from './AddPasswordDialog';
-import { usePasswords, usePasswordStats } from '@/hooks/usePasswords';
+import { EditPasswordDialog } from './EditPasswordDialog';
+import { usePasswords, usePasswordStats, Password } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
 
 export const Dashboard = () => {
@@ -33,6 +34,8 @@ export const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showPasswordGenerator, setShowPasswordGenerator] = useState(false);
   const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
   const togglePasswordVisibility = (id: string) => {
@@ -81,6 +84,19 @@ export const Dashboard = () => {
 
   const handleAddPasswordSuccess = () => {
     setShowAddPassword(false);
+    refetch();
+  };
+
+  const handleEditPassword = (password: Password) => {
+    console.log('Dashboard: handleEditPassword called with password:', password);
+    setEditingPassword(password);
+    setShowEditPassword(true);
+  };
+
+  const handleEditPasswordSuccess = () => {
+    console.log('Dashboard: handleEditPasswordSuccess called');
+    setShowEditPassword(false);
+    setEditingPassword(null);
     refetch();
   };
 
@@ -241,7 +257,11 @@ export const Dashboard = () => {
                     </div>
                     
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEditPassword(password)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
@@ -364,6 +384,13 @@ export const Dashboard = () => {
         open={showAddPassword} 
         onOpenChange={setShowAddPassword}
         onSuccess={handleAddPasswordSuccess} 
+      />
+
+      <EditPasswordDialog 
+        open={showEditPassword} 
+        onOpenChange={setShowEditPassword}
+        password={editingPassword}
+        onSuccess={handleEditPasswordSuccess} 
       />
     </div>
   );

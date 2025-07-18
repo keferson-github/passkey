@@ -5,37 +5,44 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, Plus, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Edit, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Password } from '@/hooks/usePasswords';
 
-interface AddPasswordDialogProps {
+interface EditPasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  password: Password | null;
   onSuccess?: () => void;
 }
 
 interface Category {
   id: string;
   name: string;
-  description: string;
-  icon: string;
+  icon?: string;
 }
 
 interface AccountType {
   id: string;
   name: string;
-  icon: string;
+  icon?: string;
 }
 
 interface Subcategory {
   id: string;
   name: string;
-  icon: string;
+  account_type_id: string;
+  icon?: string;
 }
 
-export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOpenChange, onSuccess }) => {
+export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({ 
+  open, 
+  onOpenChange, 
+  password,
+  onSuccess 
+}) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +50,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
   // Form state
   const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [passwordValue, setPasswordValue] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedAccountType, setSelectedAccountType] = useState('');
@@ -55,7 +62,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Load categories and account types
+  // Load categories and account types when dialog opens
   useEffect(() => {
     if (open) {
       loadCategories();
@@ -72,6 +79,26 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
       setSelectedSubcategory('');
     }
   }, [selectedAccountType]);
+
+  // Populate form when password changes
+  useEffect(() => {
+    if (password && open) {
+      setTitle(password.title);
+      setEmail(password.email);
+      setPasswordValue(password.password_hash);
+      setDescription(password.description || '');
+      setSelectedCategory(password.category.id);
+      setSelectedAccountType(password.account_type.id);
+      // Don't set subcategory immediately - let it be set after subcategories are loaded
+    }
+  }, [password, open]);
+
+  // Set subcategory after subcategories are loaded and password data is available
+  useEffect(() => {
+    if (password && subcategories.length > 0 && selectedAccountType === password.account_type.id) {
+      setSelectedSubcategory(password.subcategory?.id || '');
+    }
+  }, [subcategories, password, selectedAccountType]);
 
   const loadCategories = async () => {
     try {
@@ -140,7 +167,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
   const resetForm = () => {
     setTitle('');
     setEmail('');
-    setPassword('');
+    setPasswordValue('');
     setDescription('');
     setSelectedCategory('');
     setSelectedAccountType('');
@@ -151,16 +178,26 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    console.log('EditPasswordDialog: handleSubmit called', {
+      user: !!user,
+      password: !!password,
+      title,
+      email,
+      passwordValue,
+      selectedCategory,
+      selectedAccountType
+    });
+    
+    if (!user || !password) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para salvar senhas.",
+        description: "Você precisa estar logado para editar senhas.",
         variant: "destructive"
       });
       return;
     }
 
-    if (!title || !email || !password || !selectedCategory || !selectedAccountType) {
+    if (!title || !email || !passwordValue || !selectedCategory || !selectedAccountType) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios.",
@@ -172,38 +209,45 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
     try {
       setLoading(true);
 
-      // In a real application, you would encrypt the password before storing
-      // For this demo, we'll store it as is (NOT recommended for production)
+      const updateData = {
+        category_id: selectedCategory,
+        account_type_id: selectedAccountType,
+        subcategory_id: selectedSubcategory || null,
+        title,
+        email,
+        password_hash: passwordValue, // This should be encrypted in production
+        description: description || null,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('EditPasswordDialog: Updating password with data:', updateData);
+
       const { error } = await supabase
         .from('passwords')
-        .insert({
-          user_id: user.id,
-          category_id: selectedCategory,
-          account_type_id: selectedAccountType,
-          subcategory_id: selectedSubcategory || null,
-          title,
-          email,
-          password_hash: password, // This should be encrypted in production
-          description: description || null
-        });
+        .update(updateData)
+        .eq('id', password.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('EditPasswordDialog: Supabase error:', error);
+        throw error;
+      }
+
+      console.log('EditPasswordDialog: Password updated successfully');
 
       toast({
         title: "Sucesso",
-        description: "Senha salva com sucesso!",
+        description: "Senha atualizada com sucesso!",
         variant: "default"
       });
 
-      resetForm();
       onOpenChange(false);
       onSuccess?.();
 
     } catch (error: unknown) {
-      console.error('Erro ao salvar senha:', error);
+      console.error('Erro ao atualizar senha:', error);
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Não foi possível salvar a senha.",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar a senha.",
         variant: "destructive"
       });
     } finally {
@@ -216,25 +260,34 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
     onOpenChange(false);
   };
 
+  // Reset form when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
+  if (!password) return null;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-primary" />
-            Adicionar Nova Senha
+            <Edit className="w-5 h-5 text-primary" />
+            Editar Senha
           </DialogTitle>
           <DialogDescription>
-            Cadastre uma nova senha de forma segura e organizada
+            Atualize as informações da sua senha de forma segura
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="edit-title">Título *</Label>
             <Input
-              id="title"
+              id="edit-title"
               placeholder="Ex: Gmail Principal, LinkedIn Profissional"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -244,9 +297,9 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="edit-email">Email *</Label>
             <Input
-              id="email"
+              id="edit-email"
               type="email"
               placeholder="seu@email.com"
               value={email}
@@ -257,14 +310,14 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password">Senha *</Label>
+            <Label htmlFor="edit-password">Senha *</Label>
             <div className="relative">
               <Input
-                id="password"
+                id="edit-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Digite ou gere uma senha forte"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Digite ou atualize a senha"
+                value={passwordValue}
+                onChange={(e) => setPasswordValue(e.target.value)}
                 className="pr-10"
                 required
               />
@@ -272,24 +325,24 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="w-4 h-4" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="w-4 h-4" />
                 )}
               </Button>
             </div>
           </div>
 
-          {/* Category */}
+          {/* Category Selection */}
           <div className="space-y-2">
-            <Label htmlFor="category">Categoria *</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loadingData}>
+            <Label htmlFor="edit-category">Categoria *</Label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Carregando..." : "Selecione uma categoria"} />
+                <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
@@ -301,12 +354,12 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
             </Select>
           </div>
 
-          {/* Account Type */}
+          {/* Account Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor="account-type">Tipo de Conta *</Label>
-            <Select value={selectedAccountType} onValueChange={setSelectedAccountType} disabled={loadingData}>
+            <Label htmlFor="edit-account-type">Tipo de Conta *</Label>
+            <Select value={selectedAccountType} onValueChange={setSelectedAccountType} required>
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Carregando..." : "Selecione o tipo de conta"} />
+                <SelectValue placeholder="Selecione o tipo de conta" />
               </SelectTrigger>
               <SelectContent>
                 {accountTypes.map((type) => (
@@ -318,18 +371,19 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
             </Select>
           </div>
 
-          {/* Subcategory */}
+          {/* Subcategory Selection */}
           {subcategories.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategoria</Label>
+              <Label htmlFor="edit-subcategory">Subcategoria</Label>
               <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma subcategoria (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subcategories.map((sub) => (
-                    <SelectItem key={sub.id} value={sub.id}>
-                      {sub.name}
+                  <SelectItem value="">Nenhuma</SelectItem>
+                  {subcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -339,23 +393,22 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição (opcional)</Label>
+            <Label htmlFor="edit-description">Descrição</Label>
             <Textarea
-              id="description"
-              placeholder="Adicione uma descrição para lembrar do contexto desta senha..."
+              id="edit-description"
+              placeholder="Adicione uma descrição opcional..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
           </div>
 
-          {/* Actions */}
+          {/* Submit Button */}
           <div className="flex gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={loading}
               className="flex-1"
             >
               Cancelar
@@ -368,12 +421,12 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
+                  Atualizando...
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Salvar senha
+                  <Edit className="w-4 h-4 mr-2" />
+                  Atualizar Senha
                 </>
               )}
             </Button>
