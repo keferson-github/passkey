@@ -289,7 +289,8 @@ INSERT INTO public.password_categories (name, description, icon) VALUES
 ('Shopping', 'E-commerce e compras online', 'ShoppingBag'),
 ('Education', 'Plataformas educacionais', 'GraduationCap'),
 ('Development', 'Ferramentas de desenvolvimento', 'Code'),
-('Health', 'Saúde e fitness', 'Heart');
+('Health', 'Saúde e fitness', 'Heart'),
+('Campanha de Marketing', 'Ferramentas e contas para campanhas de marketing digital', 'Megaphone');
 
 INSERT INTO public.account_types (name, icon) VALUES
 ('Google', 'Mail'),
