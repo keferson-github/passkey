@@ -52,7 +52,9 @@ export const Dashboard = () => {
     password.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     password.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     password.account_type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    password.category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    password.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    password.subcategory?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    password.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getInitials = (name: string) => {
@@ -190,7 +192,7 @@ export const Dashboard = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Pesquisar senhas por tipo ou email..."
+                  placeholder="Pesquisar por título, email, categoria, tipo ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
