@@ -1,153 +1,116 @@
-# 🔧 Instruções para Aplicar as Funcionalidades de Admin
+# Guia de Configuração do Storage de Avatares
 
-## 📋 Resumo das Implementações
+## Problema Atual
+O bucket "avatars" não foi encontrado, causando o erro no upload de imagens.
 
-### ✅ **Funcionalidades Implementadas:**
+## Solução Definitiva
 
-1. **Página de Configurações Completa**
-   - Interface em abas (Conta, Tema, Usuários, Histórico)
-   - Acesso condicional por tipo de usuário
-   - Modal de tela cheia integrado ao Dashboard
+### Passo 1: Acesse o Console do Supabase
+1. Vá para https://supabase.com/dashboard
+2. Faça login na sua conta
+3. Selecione o projeto: `oyjpnwjwawmgecobeebl`
 
-2. **Gerenciamento de Usuários (Admin)**
-   - Listagem de todos os usuários cadastrados
-   - Ativação/desativação de usuários
-   - Proteção contra auto-desativação do admin
-   - Badges de identificação (Admin, Ativo/Inativo)
-
-3. **Controle de Tema**
-   - Alternância Dark/Light Mode individual
-   - Persistência no localStorage
-   - Aplicação automática ao documento
-
-4. **Histórico de Senhas**
-   - Admin: Visualiza todas as senhas de todos os usuários
-   - Usuário comum: Visualiza apenas suas próprias senhas
-   - Identificação do proprietário das senhas
-
-5. **Edição de Perfil**
-   - Atualização de informações pessoais
-   - Controle de avatar e nome de exibição
-
-## 🗄️ **Aplicação da Migração do Banco de Dados**
-
-### **Opção 1: Via Supabase Dashboard**
-1. Acesse o painel do Supabase
-2. Vá para "SQL Editor"
-3. Execute o script `apply_admin_features.sql`
-
-### **Opção 2: Via CLI do Supabase**
-```bash
-# Navegue até o diretório do projeto
-cd "c:\Users\kefer\OneDrive\Documentos\projeto-passkey"
-
-# Execute a migração
-npx supabase db push
-
-# Ou aplique o script SQL diretamente
-npx supabase db push --include-all
-```
-
-### **Opção 3: Execução Manual**
-Execute os seguintes comandos SQL no painel do Supabase:
+### Passo 2: Execute o Script SQL
+1. No painel lateral, clique em **SQL Editor**
+2. Clique em **New Query**
+3. Cole o script abaixo e execute:
 
 ```sql
--- Adicionar colunas
-ALTER TABLE profiles
-ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+-- Script completo para configurar o storage de avatares
+-- Execute este script completo no SQL Editor do Supabase
 
--- Definir admin
-UPDATE profiles 
-SET is_admin = TRUE 
-WHERE user_id IN (
-  SELECT id FROM auth.users 
-  WHERE email = 'contato@techsolutionspro.com.br'
-);
+-- 1. Criar o bucket avatars
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars', 
+  'avatars', 
+  true, 
+  2097152,
+  ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 2097152,
+  allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 
--- Criar índices
-CREATE INDEX IF NOT EXISTS idx_profiles_is_admin ON profiles(is_admin);
-CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON profiles(is_active);
+-- 2. Remover todas as políticas antigas relacionadas a avatares
+DROP POLICY IF EXISTS "authenticated_users_can_upload_avatars" ON storage.objects;
+DROP POLICY IF EXISTS "authenticated_users_can_update_avatars" ON storage.objects;
+DROP POLICY IF EXISTS "authenticated_users_can_delete_avatars" ON storage.objects;
+DROP POLICY IF EXISTS "public_can_read_avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Public can read avatars" ON storage.objects;
+
+-- 3. Criar políticas simples e funcionais
+CREATE POLICY "Allow authenticated users to upload avatars"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'avatars');
+
+CREATE POLICY "Allow authenticated users to update avatars"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Allow authenticated users to delete avatars"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Allow public to read avatars"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+-- 4. Verificar se tudo foi criado corretamente
+SELECT 'Bucket criado:' as status, name, public, file_size_limit 
+FROM storage.buckets WHERE name = 'avatars';
 ```
 
-## 🔐 **Configuração de Permissões**
+### Passo 3: Verificar a Configuração
+Após executar o script, execute esta consulta para verificar:
 
-### **Usuário Admin**
-- **Email:** `contato@techsolutionspro.com.br`
-- **Permissões:**
-  - ✅ Visualizar todos os usuários
-  - ✅ Ativar/desativar usuários comuns
-  - ✅ Visualizar histórico de senhas de todos
-  - ✅ Editar perfis de outros usuários
-  - ❌ Não pode desativar a própria conta
+```sql
+-- Verificar se o bucket foi criado
+SELECT * FROM storage.buckets WHERE name = 'avatars';
 
-### **Usuário Comum**
-- **Permissões:**
-  - ✅ Visualizar apenas próprio perfil
-  - ✅ Alterar tema individual
-  - ✅ Visualizar apenas próprio histórico
-  - ✅ Editar apenas próprio perfil
-  - ❌ Não pode acessar gerenciamento de usuários
-
-## 🚀 **Como Testar**
-
-### **1. Cadastrar Usuário Admin**
-```bash
-# Cadastre um usuário com o email: contato@techsolutionspro.com.br
-# Após cadastro, execute a migração SQL
+-- Verificar se as políticas foram criadas
+SELECT policyname, cmd 
+FROM pg_policies 
+WHERE tablename = 'objects' AND schemaname = 'storage' 
+AND policyname LIKE '%avatar%';
 ```
 
-### **2. Cadastrar Usuários Comuns**
-```bash
-# Cadastre outros usuários com emails diferentes
-# Eles aparecerão automaticamente na lista de usuários para o admin
-```
+### Passo 4: Testar o Upload
+1. Volte para o seu projeto
+2. Recarregue a página de configurações
+3. Vá para a seção "Avatar" na aba "Conta"
+4. Tente fazer upload de uma imagem
 
-### **3. Testar Funcionalidades**
-1. **Login como Admin:**
-   - Acesse Configurações → Usuários
-   - Teste ativar/desativar usuários
-   - Verifique histórico completo
+## Resultado Esperado
+- ✅ Bucket "avatars" criado e configurado
+- ✅ Políticas de acesso configuradas
+- ✅ Upload de imagem funcionando
+- ✅ Sem mensagens de erro no console
 
-2. **Login como Usuário Comum:**
-   - Acesse Configurações (sem aba Usuários)
-   - Teste alteração de tema
-   - Verifique histórico próprio
+## Troubleshooting
 
-## 🎯 **Arquivos Principais**
+### Se ainda houver erro "Bucket not found":
+1. Verifique se você executou o script no projeto correto
+2. Aguarde alguns minutos para propagação
+3. Recarregue a página completamente (Ctrl+F5)
 
-### **Components:**
-- `src/components/settings/Settings.tsx` - Página principal de configurações
-- `src/components/dashboard/Dashboard.tsx` - Integração com botão de configurações
-- `src/components/ui/switch.tsx` - Componente Switch para tema
+### Se houver erro de permissão:
+1. Certifique-se de que está logado no sistema
+2. Verifique se o token de autenticação não expirou
+3. Faça logout e login novamente se necessário
 
-### **Migrations:**
-- `supabase/migrations/20250718020000_add_admin_features.sql` - Migração principal
-- `apply_admin_features.sql` - Script de aplicação manual
+### Para verificar se o bucket existe via código:
+O componente ImageUpload já faz essa verificação automaticamente e mostra mensagens informativas no console.
 
-### **Hooks:**
-- `src/hooks/useAuth.ts` - Hook de autenticação
-- `src/contexts/AuthContext.ts` - Contexto de autenticação
-
-## 📊 **Validação**
-
-### **Verificar se está funcionando:**
-1. **Banco de dados:** Confirme se as colunas `is_admin` e `is_active` foram criadas
-2. **Interface:** Verifique se o botão de configurações aparece no Dashboard
-3. **Permissões:** Teste login com admin e usuário comum
-4. **Funcionalidades:** Teste todas as abas e funcionalidades
-
-### **Troubleshooting:**
-- Se não aparecer a aba "Usuários", verifique se o usuário é admin
-- Se não conseguir ativar/desativar, verifique as permissões do banco
-- Se o tema não persistir, verifique o localStorage do navegador
-
-## ✅ **Status da Implementação**
-
-- ✅ **Código:** 100% implementado
-- ✅ **Interface:** Totalmente funcional
-- ✅ **Segurança:** Controle de acesso implementado
-- ✅ **Migração:** Pronta para aplicação
-- ✅ **Testes:** Validação completa realizada
-
-**A implementação está completa e pronta para uso!**
+## Notas Importantes
+- O bucket será público para leitura (necessário para exibir avatares)
+- Apenas usuários autenticados podem fazer upload/update/delete
+- Limite de 2MB por arquivo
+- Tipos permitidos: PNG, JPEG, JPG, GIF, WEBP

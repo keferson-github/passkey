@@ -11,13 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Settings as SettingsIcon, 
-  User, 
-  Users, 
-  Shield, 
-  Moon, 
-  Sun, 
+import {
+  Settings as SettingsIcon,
+  User,
+  Users,
+  Shield,
+  Moon,
+  Sun,
   History,
   Save,
   Eye,
@@ -29,6 +29,7 @@ import {
   X,
   ArrowLeft
 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { useAuth } from '@/hooks/useAuth';
 import { usePasswords } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
@@ -162,7 +163,7 @@ export const Settings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Get user display names for each password from profiles
       const passwordsWithUserEmails = await Promise.all(
         (data || []).map(async (password) => {
@@ -171,7 +172,7 @@ export const Settings = () => {
             .select('display_name')
             .eq('user_id', password.user_id)
             .single();
-          
+
           return {
             ...password,
             user_email: userProfile?.display_name || 'N/A'
@@ -207,7 +208,7 @@ export const Settings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       const passwordsWithUserEmails = (data || []).map(password => ({
         ...password,
         user_email: user?.email || 'N/A'
@@ -224,36 +225,79 @@ export const Settings = () => {
     }
   }, [user?.id, user?.email]);
 
+  // Função para buscar perfil completo do usuário
+  const fetchProfile = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url, user_id')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (!error && updatedProfile) {
+        console.log('Perfil carregado do banco:', updatedProfile);
+        setEditingProfile(prev => ({
+          ...prev,
+          display_name: updatedProfile.display_name || '',
+          email: user?.email || '',
+          avatar_url: updatedProfile.avatar_url || ''
+        }));
+      } else {
+        console.log('Usando dados do contexto de autenticação');
+        setEditingProfile(prev => ({
+          ...prev,
+          display_name: profile?.display_name || '',
+          email: user?.email || '',
+          avatar_url: profile?.avatar_url || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error);
+      // Fallback para dados do contexto
+      setEditingProfile(prev => ({
+        ...prev,
+        display_name: profile?.display_name || '',
+        email: user?.email || '',
+        avatar_url: profile?.avatar_url || ''
+      }));
+    }
+  }, [user?.id, user?.email, profile?.display_name, profile?.avatar_url]);
+
+  // useEffect para carregar dados iniciais
   useEffect(() => {
     const fetchData = async () => {
       if (isAdmin) {
         await fetchUsers();
         await fetchAllPasswordHistory();
       } else {
-        // Busca perfil atualizado do usuário comum
-        const { data: updatedProfile, error } = await supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('user_id', user?.id)
-          .single();
-        if (!error && updatedProfile) {
-          setEditingProfile(prev => ({
-            ...prev,
-            display_name: updatedProfile.display_name,
-            email: user?.email || '', // Usa o e-mail do usuário autenticado
-            avatar_url: updatedProfile.avatar_url
-          }));
-        }
+        await fetchProfile();
         await fetchUserPasswordHistory();
       }
     };
-
-    fetchData();
-
+    
+    if (user?.id) {
+      fetchData();
+    }
+    
     // Check current theme
     const currentTheme = localStorage.getItem('theme');
     setIsDarkMode(currentTheme === 'dark');
-  }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, user?.id, user?.email]);
+  }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, fetchProfile, user?.id]);
+
+  // useEffect separado para atualizar o estado quando os dados do contexto mudarem
+  useEffect(() => {
+    if (user && profile) {
+      console.log('Atualizando estado com dados do contexto:', { user: user.email, profile: profile.display_name });
+      setEditingProfile(prev => ({
+        ...prev,
+        display_name: profile.display_name || '',
+        email: user.email || '',
+        avatar_url: profile.avatar_url || ''
+      }));
+    }
+  }, [user?.email, profile?.display_name, profile?.avatar_url]);
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     // Prevent admin from deactivating themselves
@@ -274,7 +318,7 @@ export const Settings = () => {
 
       if (error) throw error;
 
-      setUsers(users.map(userItem => 
+      setUsers(users.map(userItem =>
         userItem.user_id === userId ? { ...userItem, is_active: !currentStatus } : userItem
       ));
 
@@ -296,7 +340,7 @@ export const Settings = () => {
     const newTheme = isDarkMode ? 'light' : 'dark';
     setIsDarkMode(!isDarkMode);
     localStorage.setItem('theme', newTheme);
-    
+
     // Apply theme to document
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -347,42 +391,11 @@ export const Settings = () => {
       }
 
       // Atualiza imediatamente o estado do usuário no front-end
-      setEditingProfile(prev => ({
-        ...prev,
-        display_name: editingProfile.display_name,
-        email: editingProfile.email,
-        avatar_url: editingProfile.avatar_url,
-        password: '',
-        confirmPassword: ''
-      }));
       setShowPasswordFields(false);
-
-      // Atualiza o profile local se possível
-      if (profile) {
-        profile.display_name = editingProfile.display_name;
-        profile.avatar_url = editingProfile.avatar_url;
-      }
-      if (user) {
-        user.email = editingProfile.email;
-      }
-
-      // Persiste e recarrega os dados do usuário após atualização
       if (isAdmin) {
         await fetchUsers();
       } else {
-        // Para usuário comum, busca o próprio perfil atualizado
-        const { data: updatedProfile, error } = await supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('user_id', user?.id)
-          .single();
-        if (!error && updatedProfile) {
-          setEditingProfile(prev => ({
-            ...prev,
-            display_name: updatedProfile.display_name,
-            avatar_url: updatedProfile.avatar_url
-          }));
-        }
+        await fetchProfile();
       }
 
       toast({
@@ -412,7 +425,7 @@ export const Settings = () => {
 
       if (error) throw error;
 
-      setUsers(users.map(userItem => 
+      setUsers(users.map(userItem =>
         userItem.user_id === userId ? { ...userItem, ...profileData } : userItem
       ));
 
@@ -494,7 +507,7 @@ export const Settings = () => {
 
         // Finally, delete user from auth (requires admin privileges)
         const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-        
+
         if (authError) {
           console.warn('Could not delete user from auth:', authError);
           // Continue anyway, as profile deletion is more important
@@ -576,27 +589,19 @@ export const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={editingProfile.avatar_url} />
-                    <AvatarFallback className="text-lg">
-                      {getInitials(editingProfile.display_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <Label htmlFor="display_name">Nome de Exibição</Label>
-                    <Input
-                      id="display_name"
-                      value={editingProfile.display_name}
-                      onChange={(e) => setEditingProfile({
-                        ...editingProfile,
-                        display_name: e.target.value
-                      })}
-                    />
-                  </div>
+                <div className="flex-1 mb-4">
+                  <Label htmlFor="display_name">Nome de Exibição</Label>
+                  <Input
+                    id="display_name"
+                    value={editingProfile.display_name}
+                    onChange={(e) => setEditingProfile({
+                      ...editingProfile,
+                      display_name: e.target.value
+                    })}
+                  />
                 </div>
 
-                <div>
+                <div className="mb-4">
                   <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
@@ -609,16 +614,16 @@ export const Settings = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="avatar_url">URL do Avatar</Label>
-                  <Input
-                    id="avatar_url"
-                    value={editingProfile.avatar_url}
-                    onChange={(e) => setEditingProfile({
+                <div className="mb-4">
+                  <Label className="block mb-2">Avatar</Label>
+                  <ImageUpload
+                    value={editingProfile.avatar_url || ''}
+                    onChange={(url) => setEditingProfile({
                       ...editingProfile,
-                      avatar_url: e.target.value
+                      avatar_url: url
                     })}
-                    placeholder="https://exemplo.com/avatar.jpg"
+                    userId={user?.id || ''}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -666,7 +671,7 @@ export const Settings = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button 
+                  <Button
                     onClick={updateProfile}
                     disabled={isLoading}
                     className="flex items-center gap-2"
@@ -798,7 +803,7 @@ export const Settings = () => {
               <CardHeader>
                 <CardTitle>Histórico de Senhas</CardTitle>
                 <CardDescription>
-                  {isAdmin 
+                  {isAdmin
                     ? 'Visualize o histórico de senhas de todos os usuários'
                     : 'Visualize seu histórico de senhas cadastradas'
                   }
@@ -856,6 +861,18 @@ export const Settings = () => {
           </DialogHeader>
           {editingUser && (
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-avatar" className="block mb-2">Avatar</Label>
+                <ImageUpload
+                  value={editingUser.avatar_url || ''}
+                  onChange={(url) => setEditingUser({
+                    ...editingUser,
+                    avatar_url: url
+                  })}
+                  userId={editingUser.user_id || ''}
+                  disabled={isLoading}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-username">Nome de usuário</Label>
                 <Input
