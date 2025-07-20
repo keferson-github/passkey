@@ -229,14 +229,14 @@ export const Settings = () => {
   // Função para buscar perfil completo do usuário
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
       const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .select('display_name, avatar_url, user_id')
         .eq('user_id', user.id)
         .single();
-        
+
       if (!error && updatedProfile) {
         console.log('Perfil carregado do banco:', updatedProfile);
         setEditingProfile(prev => ({
@@ -277,11 +277,11 @@ export const Settings = () => {
         await fetchUserPasswordHistory();
       }
     };
-    
+
     if (user?.id) {
       fetchData();
     }
-    
+
     // Tema gerenciado pelo ThemeProvider
   }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, fetchProfile, user?.id]);
 
