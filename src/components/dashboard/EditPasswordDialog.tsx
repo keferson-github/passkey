@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Password } from '@/hooks/usePasswords';
+import { translateCategory, translateAccountType, translateSubcategory } from '@/utils/translations';
 
 interface EditPasswordDialogProps {
   open: boolean;
@@ -364,7 +365,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
               <SelectContent>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                    {translateCategory(category.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -385,7 +386,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
               <SelectContent>
                 {accountTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
-                    {type.name}
+                    {translateAccountType(type.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -407,7 +408,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
                   <SelectItem value="none">Nenhuma</SelectItem>
                   {subcategories.map((subcategory) => (
                     <SelectItem key={subcategory.id} value={subcategory.id}>
-                      {subcategory.name}
+                      {translateSubcategory(subcategory.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

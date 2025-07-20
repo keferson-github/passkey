@@ -35,6 +35,7 @@ import { usePasswords } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from '@/components/theme';
+import { translateCategory, translateAccountType } from '@/utils/translations';
 
 interface UserProfile {
   id: string;
@@ -823,8 +824,8 @@ export const Settings = () => {
                         <p className="font-medium">{password.title}</p>
                         <p className="text-sm text-muted-foreground">{password.email}</p>
                         <div className="flex gap-2 mt-1">
-                          <Badge variant="outline">{password.category.name}</Badge>
-                          <Badge variant="secondary">{password.account_type.name}</Badge>
+                          <Badge variant="outline">{translateCategory(password.category.name)}</Badge>
+                          <Badge variant="secondary">{translateAccountType(password.account_type.name)}</Badge>
                           {isAdmin && (
                             <Badge variant="default">{password.user_email}</Badge>
                           )}

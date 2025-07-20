@@ -34,6 +34,7 @@ import { toast } from '@/hooks/use-toast';
 import { useTheme } from '@/components/theme';
 import { Moon, Sun } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { translateCategory, translateAccountType, translateSubcategory } from '@/utils/translations';
 
 export const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -166,9 +167,9 @@ export const Dashboard = () => {
         '',
         '📂 CATEGORIZAÇÃO',
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        `🏷️ Categoria: ${password.category.name}`,
-        `🔖 Tipo de Conta: ${password.account_type.name}`,
-        ...(password.subcategory ? [`🏷️ Subcategoria: ${password.subcategory.name}`] : []),
+        `🏷️ Categoria: ${translateCategory(password.category.name)}`,
+        `🔖 Tipo de Conta: ${translateAccountType(password.account_type.name)}`,
+        ...(password.subcategory ? [`🏷️ Subcategoria: ${translateSubcategory(password.subcategory.name)}`] : []),
         '',
         ...(password.description ? [
           '📋 DESCRIÇÃO',
@@ -444,7 +445,7 @@ export const Dashboard = () => {
                           htmlFor={`category-${category}`}
                           className="text-sm cursor-pointer flex-1"
                         >
-                          {category}
+                          {translateCategory(category)}
                         </label>
                         <Badge variant="outline" className="text-xs">
                           {passwords.filter(p => p.category.name === category).length}
@@ -469,7 +470,7 @@ export const Dashboard = () => {
                           htmlFor={`account-${accountType}`}
                           className="text-sm cursor-pointer flex-1"
                         >
-                          {accountType}
+                          {translateAccountType(accountType)}
                         </label>
                         <Badge variant="outline" className="text-xs">
                           {passwords.filter(p => p.account_type.name === accountType).length}
@@ -517,7 +518,7 @@ export const Dashboard = () => {
                     <span className="text-sm font-medium">Filtros ativos:</span>
                     {selectedCategories.map(category => (
                       <Badge key={category} variant="secondary" className="text-xs">
-                        {category}
+                        {translateCategory(category)}
                         <button
                           onClick={() => toggleCategoryFilter(category)}
                           className="ml-1 hover:bg-red-200 rounded-full p-0.5"
@@ -528,7 +529,7 @@ export const Dashboard = () => {
                     ))}
                     {selectedAccountTypes.map(accountType => (
                       <Badge key={accountType} variant="secondary" className="text-xs">
-                        {accountType}
+                        {translateAccountType(accountType)}
                         <button
                           onClick={() => toggleAccountTypeFilter(accountType)}
                           className="ml-1 hover:bg-red-200 rounded-full p-0.5"
@@ -606,10 +607,10 @@ export const Dashboard = () => {
                 <div className="space-y-3">
                   {/* Category and Type */}
                   <div className="flex gap-2">
-                    <Badge variant="outline">{password.category.name}</Badge>
-                    <Badge variant="secondary">{password.account_type.name}</Badge>
+                    <Badge variant="outline">{translateCategory(password.category.name)}</Badge>
+                    <Badge variant="secondary">{translateAccountType(password.account_type.name)}</Badge>
                     {password.subcategory && (
-                      <Badge variant="outline">{password.subcategory.name}</Badge>
+                      <Badge variant="outline">{translateSubcategory(password.subcategory.name)}</Badge>
                     )}
                   </div>
 

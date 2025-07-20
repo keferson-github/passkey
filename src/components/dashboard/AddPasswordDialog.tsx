@@ -9,6 +9,7 @@ import { Eye, EyeOff, Plus, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { translateCategory, translateAccountType, translateSubcategory } from '@/utils/translations';
 
 interface AddPasswordDialogProps {
   open: boolean;
@@ -294,7 +295,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
               <SelectContent>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                    {translateCategory(category.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -311,7 +312,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
               <SelectContent>
                 {accountTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
-                    {type.name}
+                    {translateAccountType(type.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -329,7 +330,7 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
                 <SelectContent>
                   {subcategories.map((sub) => (
                     <SelectItem key={sub.id} value={sub.id}>
-                      {sub.name}
+                      {translateSubcategory(sub.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
