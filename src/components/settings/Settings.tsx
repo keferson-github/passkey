@@ -63,7 +63,7 @@ export const Settings = () => {
   const { passwords } = usePasswords();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [passwordHistory, setPasswordHistory] = useState<PasswordHistory[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [editingProfile, setEditingProfile] = useState({
     display_name: profile?.display_name || '',
@@ -281,9 +281,22 @@ export const Settings = () => {
       fetchData();
     }
     
-    // Check current theme
+    // Check current theme - modo escuro como padrão
     const currentTheme = localStorage.getItem('theme');
-    setIsDarkMode(currentTheme === 'dark');
+    if (currentTheme === null) {
+      // Se não há preferência salva, definir modo escuro como padrão
+      setIsDarkMode(true);
+      localStorage.setItem('theme', 'dark');
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(currentTheme === 'dark');
+      // Aplicar tema ao documento
+      if (currentTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, fetchProfile, user?.id]);
 
   // useEffect separado para atualizar o estado quando os dados do contexto mudarem
@@ -693,25 +706,48 @@ export const Settings = () => {
                   Personalize a aparência do aplicativo
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
+              <CardContent className="space-y-6">
+                {/* Modo Escuro */}
+                <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    {isDarkMode ? (
-                      <Moon className="w-5 h-5" />
-                    ) : (
-                      <Sun className="w-5 h-5" />
-                    )}
+                    <Moon className="w-5 h-5" />
                     <div>
-                      <Label htmlFor="theme-toggle">Modo Escuro</Label>
+                      <Label htmlFor="dark-mode-toggle">Modo Escuro</Label>
                       <p className="text-sm text-muted-foreground">
-                        {isDarkMode ? 'Desativar' : 'Ativar'} o modo escuro
+                        {isDarkMode ? 'Ativo - Tema escuro aplicado' : 'Desativado - Clique para ativar'}
                       </p>
                     </div>
                   </div>
                   <Switch
-                    id="theme-toggle"
+                    id="dark-mode-toggle"
                     checked={isDarkMode}
-                    onCheckedChange={toggleTheme}
+                    onCheckedChange={(checked) => {
+                      if (checked && !isDarkMode) {
+                        toggleTheme();
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Modo Claro */}
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Sun className="w-5 h-5" />
+                    <div>
+                      <Label htmlFor="light-mode-toggle">Modo Claro</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {!isDarkMode ? 'Ativo - Tema claro aplicado' : 'Desativado - Clique para ativar'}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="light-mode-toggle"
+                    checked={!isDarkMode}
+                    onCheckedChange={(checked) => {
+                      if (checked && isDarkMode) {
+                        toggleTheme();
+                      }
+                    }}
                   />
                 </div>
               </CardContent>

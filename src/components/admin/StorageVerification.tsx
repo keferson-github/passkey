@@ -129,8 +129,8 @@ export const StorageVerification: React.FC = () => {
                 {/* Status Geral */}
                 {verificationResult && overallStatus && (
                     <div className={`p-4 rounded-lg border-2 ${overallStatus.status === 'success' ? 'border-green-200 bg-green-50' :
-                            overallStatus.status === 'warning' ? 'border-yellow-200 bg-yellow-50' :
-                                'border-red-200 bg-red-50'
+                        overallStatus.status === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+                            'border-red-200 bg-red-50'
                         }`}>
                         <div className="flex items-center gap-2 mb-2">
                             {overallStatus.status === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
