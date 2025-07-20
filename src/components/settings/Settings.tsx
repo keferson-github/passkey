@@ -34,6 +34,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePasswords } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from '@/components/theme';
 
 interface UserProfile {
   id: string;
@@ -63,7 +64,7 @@ export const Settings = () => {
   const { passwords } = usePasswords();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [passwordHistory, setPasswordHistory] = useState<PasswordHistory[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [editingProfile, setEditingProfile] = useState({
     display_name: profile?.display_name || '',
@@ -281,22 +282,7 @@ export const Settings = () => {
       fetchData();
     }
     
-    // Check current theme - modo escuro como padrão
-    const currentTheme = localStorage.getItem('theme');
-    if (currentTheme === null) {
-      // Se não há preferência salva, definir modo escuro como padrão
-      setIsDarkMode(true);
-      localStorage.setItem('theme', 'dark');
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(currentTheme === 'dark');
-      // Aplicar tema ao documento
-      if (currentTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
+    // Tema gerenciado pelo ThemeProvider
   }, [isAdmin, fetchUsers, fetchAllPasswordHistory, fetchUserPasswordHistory, fetchProfile, user?.id]);
 
   // useEffect separado para atualizar o estado quando os dados do contexto mudarem
@@ -349,23 +335,7 @@ export const Settings = () => {
     }
   };
 
-  const toggleTheme = () => {
-    const newTheme = isDarkMode ? 'light' : 'dark';
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem('theme', newTheme);
-
-    // Apply theme to document
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    toast({
-      title: "Tema alterado",
-      description: `Tema alterado para ${newTheme === 'dark' ? 'escuro' : 'claro'}.`,
-    });
-  };
+  // Tema gerenciado pelo ThemeProvider
 
   const updateProfile = async () => {
     setIsLoading(true);
@@ -714,16 +684,16 @@ export const Settings = () => {
                     <div>
                       <Label htmlFor="dark-mode-toggle">Modo Escuro</Label>
                       <p className="text-sm text-muted-foreground">
-                        {isDarkMode ? 'Ativo - Tema escuro aplicado' : 'Desativado - Clique para ativar'}
+                        {theme === 'dark' ? 'Ativo - Tema escuro aplicado' : 'Desativado - Clique para ativar'}
                       </p>
                     </div>
                   </div>
                   <Switch
                     id="dark-mode-toggle"
-                    checked={isDarkMode}
+                    checked={theme === 'dark'}
                     onCheckedChange={(checked) => {
-                      if (checked && !isDarkMode) {
-                        toggleTheme();
+                      if (checked && theme !== 'dark') {
+                        setTheme('dark');
                       }
                     }}
                   />
@@ -736,16 +706,16 @@ export const Settings = () => {
                     <div>
                       <Label htmlFor="light-mode-toggle">Modo Claro</Label>
                       <p className="text-sm text-muted-foreground">
-                        {!isDarkMode ? 'Ativo - Tema claro aplicado' : 'Desativado - Clique para ativar'}
+                        {theme === 'light' ? 'Ativo - Tema claro aplicado' : 'Desativado - Clique para ativar'}
                       </p>
                     </div>
                   </div>
                   <Switch
                     id="light-mode-toggle"
-                    checked={!isDarkMode}
+                    checked={theme === 'light'}
                     onCheckedChange={(checked) => {
-                      if (checked && isDarkMode) {
-                        toggleTheme();
+                      if (checked && theme !== 'light') {
+                        setTheme('light');
                       }
                     }}
                   />

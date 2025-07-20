@@ -31,11 +31,15 @@ import { EditPasswordDialog } from './EditPasswordDialog';
 import { useNavigate } from 'react-router-dom';
 import { usePasswords, usePasswordStats, Password } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/theme';
+import { Moon, Sun } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 export const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { passwords, isLoading, refetch, deletePassword } = usePasswords();
   const { stats } = usePasswordStats();
+  const { theme, setTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [showPasswordGenerator, setShowPasswordGenerator] = useState(false);
   const [showAddPassword, setShowAddPassword] = useState(false);
@@ -292,6 +296,17 @@ export const Dashboard = () => {
               </Button>
 
               <div className="flex items-center gap-2">
+                {/* Theme Toggle */}
+                <div className="flex items-center gap-2 mr-2">
+                  <Sun className="w-4 h-4" />
+                  <Switch 
+                    checked={theme === 'dark'} 
+                    onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                    id="theme-toggle"
+                  />
+                  <Moon className="w-4 h-4" />
+                </div>
+                
                 <Button
                   variant="ghost"
                   size="sm"
