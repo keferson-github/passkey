@@ -8,6 +8,7 @@ export const categoryTranslations: Record<string, string> = {
   'Education': 'Educação',
   'Development': 'Desenvolvimento',
   'Health': 'Saúde',
+  'Personal': 'Pessoal',
   'Campanha de Marketing': 'Campanha de Marketing'
 };
 
