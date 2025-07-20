@@ -9,6 +9,7 @@ export const categoryTranslations: Record<string, string> = {
   'Development': 'Desenvolvimento',
   'Health': 'Saúde',
   'Personal': 'Pessoal',
+  'Site': 'Site',
   'Campanha de Marketing': 'Campanha de Marketing'
 };
 
@@ -129,7 +130,10 @@ export const subcategoryTranslations: Record<string, string> = {
   'Instagram': 'Instagram',
   'WhatsApp': 'WhatsApp',
   'Messenger': 'Messenger',
-  'Threads': 'Threads'
+  'Threads': 'Threads',
+  
+  // General subcategories
+  'Institucional': 'Institucional'
 };
 
 // Função para traduzir categoria

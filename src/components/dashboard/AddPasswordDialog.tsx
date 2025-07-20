@@ -285,23 +285,6 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
             </div>
           </div>
 
-          {/* Category */}
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria *</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loadingData}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Carregando..." : "Selecione uma categoria"} />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {translateCategory(category.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Account Type */}
           <div className="space-y-2">
             <Label htmlFor="account-type">Tipo de Conta *</Label>
@@ -313,6 +296,23 @@ export const AddPasswordDialog: React.FC<AddPasswordDialogProps> = ({ open, onOp
                 {accountTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
                     {translateAccountType(type.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label htmlFor="category">Categoria *</Label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loadingData}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingData ? "Carregando..." : "Selecione uma categoria"} />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {translateCategory(category.name)}
                   </SelectItem>
                 ))}
               </SelectContent>

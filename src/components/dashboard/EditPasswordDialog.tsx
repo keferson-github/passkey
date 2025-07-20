@@ -210,10 +210,49 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
       return;
     }
 
-    if (!title || !email || !passwordValue || !selectedCategory || !selectedAccountType) {
+    // Validação flexível - permite edição parcial dos campos
+    // Apenas verifica se pelo menos um campo foi alterado
+    const hasChanges = 
+      title !== password.title ||
+      email !== password.email ||
+      passwordValue !== password.password_hash ||
+      selectedCategory !== password.category.id ||
+      selectedAccountType !== password.account_type.id ||
+      selectedSubcategory !== (password.subcategory?.id || 'none') ||
+      description !== (password.description || '');
+
+    if (!hasChanges) {
+      toast({
+        title: "Nenhuma alteração",
+        description: "Nenhum campo foi modificado. Faça pelo menos uma alteração para salvar.",
+        variant: "default"
+      });
+      return;
+    }
+
+    // Validação básica - apenas campos que não podem estar vazios se foram preenchidos
+    if (title && title.trim() === '') {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios.",
+        description: "O título não pode estar vazio.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (email && email.trim() === '') {
+      toast({
+        title: "Erro",
+        description: "O email não pode estar vazio.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordValue && passwordValue.trim() === '') {
+      toast({
+        title: "Erro",
+        description: "A senha não pode estar vazia.",
         variant: "destructive"
       });
       return;
@@ -222,16 +261,39 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
     try {
       setLoading(true);
 
-      const updateData = {
-        category_id: selectedCategory,
-        account_type_id: selectedAccountType,
-        subcategory_id: selectedSubcategory === 'none' ? null : selectedSubcategory,
-        title,
-        email,
-        password_hash: passwordValue,
-        description: description || null,
+      // Construir objeto de atualização apenas com campos alterados
+      const updateData: any = {
         updated_at: new Date().toISOString()
       };
+
+      // Adicionar apenas campos que foram alterados
+      if (title !== password.title) {
+        updateData.title = title;
+      }
+      
+      if (email !== password.email) {
+        updateData.email = email;
+      }
+      
+      if (passwordValue !== password.password_hash) {
+        updateData.password_hash = passwordValue;
+      }
+      
+      if (selectedCategory !== password.category.id) {
+        updateData.category_id = selectedCategory;
+      }
+      
+      if (selectedAccountType !== password.account_type.id) {
+        updateData.account_type_id = selectedAccountType;
+      }
+      
+      if (selectedSubcategory !== (password.subcategory?.id || 'none')) {
+        updateData.subcategory_id = selectedSubcategory === 'none' ? null : selectedSubcategory;
+      }
+      
+      if (description !== (password.description || '')) {
+        updateData.description = description || null;
+      }
 
       console.log('EditPasswordDialog: Updating password with data:', updateData);
 
@@ -292,39 +354,50 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
             Editar Senha
           </DialogTitle>
           <DialogDescription>
-            Atualize as informações da sua senha de forma segura
+            Atualize as informações da sua senha de forma segura. Você pode alterar apenas os campos desejados - não é necessário preencher todos os campos.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Info Card */}
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 mt-0.5">
+                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1"></div>
+              </div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                <p className="font-medium mb-1">Edição Flexível</p>
+                <p>Altere apenas os campos que desejar. Não é necessário preencher todos os campos - apenas aqueles que você quer modificar.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="edit-title">Título *</Label>
+            <Label htmlFor="edit-title">Título</Label>
             <Input
               id="edit-title"
               placeholder="Ex: Gmail Principal, LinkedIn Profissional"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
             />
           </div>
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="edit-email">Email *</Label>
+            <Label htmlFor="edit-email">Email</Label>
             <Input
               id="edit-email"
               type="email"
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="edit-password">Senha *</Label>
+            <Label htmlFor="edit-password">Senha</Label>
             <div className="relative">
               <Input
                 id="edit-password"
@@ -333,7 +406,6 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
                 value={passwordValue}
                 onChange={(e) => setPasswordValue(e.target.value)}
                 className="pr-10"
-                required
               />
               <Button
                 type="button"
@@ -351,34 +423,12 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
             </div>
           </div>
 
-          {/* Category Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-category">Categoria *</Label>
-            <Select 
-              value={selectedCategory || ''} 
-              onValueChange={setSelectedCategory} 
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {translateCategory(category.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Account Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor="edit-account-type">Tipo de Conta *</Label>
+            <Label htmlFor="edit-account-type">Tipo de Conta</Label>
             <Select 
               value={selectedAccountType || ''} 
-              onValueChange={setSelectedAccountType} 
-              required
+              onValueChange={setSelectedAccountType}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de conta" />
@@ -387,6 +437,26 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
                 {accountTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
                     {translateAccountType(type.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Category Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-category">Categoria</Label>
+            <Select 
+              value={selectedCategory || ''} 
+              onValueChange={setSelectedCategory}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {translateCategory(category.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
