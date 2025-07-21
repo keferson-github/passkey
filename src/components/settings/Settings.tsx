@@ -289,7 +289,7 @@ export const Settings = () => {
         avatar_url: profile.avatar_url || ''
       }));
     }
-  }, [user?.email, profile?.display_name, profile?.avatar_url]);
+  }, [user, profile]);
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     // Prevent admin from deactivating themselves
