@@ -568,23 +568,23 @@ export const Settings = () => {
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               <SettingsIcon className="w-6 h-6 md:w-8 md:h-8 text-primary flex-shrink-0" />
               <h1 className="text-lg md:text-3xl font-bold truncate">Configurações</h1>
-              {isAdmin && (
+            {isAdmin && (
                 <Badge variant="secondary" className="text-xs md:text-sm ml-1 md:ml-2 flex-shrink-0">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin
-                </Badge>
-              )}
-            </div>
-            <Button
-              variant="outline"
+                <Shield className="w-3 h-3 mr-1" />
+                Admin
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
               size="sm"
               className="flex-shrink-0 min-h-[44px] md:min-h-auto px-3 md:px-4 flex items-center gap-2"
-              onClick={() => navigate("/dashboard")}
-            >
-              <ArrowLeft className="w-4 h-4" />
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Voltar para o Dashboard</span>
               <span className="sm:hidden">Dashboard</span>
-            </Button>
+          </Button>
           </div>
         </div>
 
@@ -1009,8 +1009,8 @@ export const Settings = () => {
                         >
                           <X className="w-4 h-4" />
                         </Button>
-                      )}
-                    </div>
+                          )}
+                        </div>
                     
                     {/* Search Results Counter - Mobile */}
                     {historySearchTerm && (
@@ -1064,20 +1064,20 @@ export const Settings = () => {
                               <div className="flex items-center gap-2 px-3 py-1.5 bg-background/60 rounded-xl border border-muted/50">
                                 <Clock className="w-3 h-3 text-muted-foreground" />
                                 <span className="text-xs font-medium text-muted-foreground">
-                                  {new Date(password.created_at).toLocaleDateString('pt-BR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
+                          {new Date(password.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
                                     year: '2-digit'
                                   })}
                                 </span>
                               </div>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(password.created_at).toLocaleTimeString('pt-BR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                               </span>
-                            </div>
+                      </div>
                           </div>
                         </div>
 
@@ -1151,7 +1151,7 @@ export const Settings = () => {
                       <div className="max-w-sm mx-auto">
                         <div className="flex h-16 w-16 items-center justify-center mx-auto mb-6 rounded-2xl bg-muted/30">
                           <Search className="w-8 h-8 text-muted-foreground" />
-                        </div>
+                </div>
                         <h3 className="text-lg font-semibold mb-3 text-foreground">
                           Nenhum resultado encontrado
                         </h3>

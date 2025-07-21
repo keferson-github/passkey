@@ -502,9 +502,12 @@ export const Dashboard = () => {
             </Button>
             
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-center md:text-left">
-              <Badge variant="secondary" className="text-sm py-1">
-                {filteredPasswords.length} de {passwords.length} senhas
-              </Badge>
+              <div className="flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:px-3 md:py-1 bg-gradient-to-r from-primary/10 to-blue-500/10 rounded-2xl md:rounded-lg border border-primary/20 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                <span className="text-sm md:text-sm font-medium text-primary">
+                  {filteredPasswords.length} de {passwords.length} senhas
+                </span>
+              </div>
               
               {hasActiveFilters && (
                 <Button
