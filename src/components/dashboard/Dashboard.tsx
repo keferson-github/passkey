@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,8 @@ import {
   Filter,
   Loader2,
   ChevronDown,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PasswordGenerator } from './PasswordGenerator';
@@ -48,6 +49,7 @@ export const Dashboard = () => {
   const navigate = useNavigate();
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [showScrollTop, setShowScrollTop] = useState(false);
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -55,6 +57,17 @@ export const Dashboard = () => {
   const [selectedAccountTypes, setSelectedAccountTypes] = useState<string[]>([]);
   const [passwordStrengthFilter, setPasswordStrengthFilter] = useState<'all' | 'strong' | 'weak'>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'recent' | 'older'>('all');
+
+  // Scroll detection for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollTop(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const togglePasswordVisibility = (id: string) => {
     const newVisible = new Set(visiblePasswords);
@@ -849,6 +862,21 @@ export const Dashboard = () => {
         password={editingPassword}
         onSuccess={handleEditPasswordSuccess} 
       />
+
+      {/* Back to Top Button */}
+      {showScrollTop && (
+        <div className="fixed bottom-6 left-6 z-50">
+          <Button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            variant="outline"
+            size="sm"
+            className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 p-0 bg-background/80 backdrop-blur-sm border-primary/20 animate-in fade-in-0 slide-in-from-bottom-2"
+            title="Voltar ao Topo"
+          >
+            <ArrowLeft className="w-4 h-4 rotate-90" />
+          </Button>
+        </div>
+      )}
 
       
     </div>

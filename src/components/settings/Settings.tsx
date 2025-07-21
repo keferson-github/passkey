@@ -28,7 +28,10 @@ import {
   Edit,
   Trash2,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Search,
+  Clock,
+  Filter
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useAuth } from '@/hooks/useAuth';
@@ -81,6 +84,8 @@ export const Settings = () => {
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
 
   const isAdmin = profile?.is_admin || user?.email === 'contato@techsolutionspro.com.br';
 
@@ -290,6 +295,17 @@ export const Settings = () => {
       }));
     }
   }, [user, profile]);
+
+  // Scroll detection for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollTop(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     // Prevent admin from deactivating themselves
@@ -524,49 +540,87 @@ export const Settings = () => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
   };
 
+  // Filter password history based on search term
+  const filteredPasswordHistory = passwordHistory.filter(password => {
+    const matchesSearch = password.title.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      password.email.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      password.category.name.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      password.account_type.name.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      translateCategory(password.category.name).toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      translateAccountType(password.account_type.name).toLowerCase().includes(historySearchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
+
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="container mx-auto max-w-6xl">
-        <div className="flex items-center gap-3 mb-6">
-          <SettingsIcon className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold">Configurações</h1>
-          {isAdmin && (
-            <Badge variant="secondary" className="ml-2">
-              <Shield className="w-3 h-3 mr-1" />
-              Admin
-            </Badge>
-          )}
-          <Button
-            variant="outline"
-            className="ml-auto flex items-center gap-2"
-            onClick={() => navigate("/dashboard")}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar para o Dashboard
-          </Button>
+    <div className="min-h-screen bg-background pb-safe-bottom"
+         style={{ 
+           paddingTop: 'env(safe-area-inset-top)', 
+           paddingLeft: 'env(safe-area-inset-left)', 
+           paddingRight: 'env(safe-area-inset-right)',
+           scrollBehavior: 'smooth'
+         }}>
+      <div className="px-4 py-4 md:px-6 md:py-6 container mx-auto max-w-6xl">
+        {/* Header - Mobile Side by Side Navigation */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4 mb-6 md:static md:bg-transparent md:backdrop-blur-none md:py-0 md:mx-0 md:px-0">
+          <div className="flex items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+              <SettingsIcon className="w-6 h-6 md:w-8 md:h-8 text-primary flex-shrink-0" />
+              <h1 className="text-lg md:text-3xl font-bold truncate">Configurações</h1>
+              {isAdmin && (
+                <Badge variant="secondary" className="text-xs md:text-sm ml-1 md:ml-2 flex-shrink-0">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 min-h-[44px] md:min-h-auto px-3 md:px-4 flex items-center gap-2"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Voltar para o Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
+            </Button>
+          </div>
         </div>
 
-        <Tabs defaultValue="account" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <TabsTrigger value="account">Conta</TabsTrigger>
-            <TabsTrigger value="theme">Tema</TabsTrigger>
-            {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
-            <TabsTrigger value="history">Histórico</TabsTrigger>
+        <Tabs defaultValue="account" className="space-y-4 md:space-y-6">
+          <TabsList className={`grid w-full gap-1 p-1 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-2xl md:rounded-lg bg-muted/30 md:bg-muted`}>
+            <TabsTrigger value="account" className="min-h-[44px] px-2 md:px-3 text-xs md:text-sm font-medium rounded-xl md:rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <span className="truncate">Conta</span>
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="min-h-[44px] px-2 md:px-3 text-xs md:text-sm font-medium rounded-xl md:rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <span className="truncate">Tema</span>
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users" className="min-h-[44px] px-1 md:px-3 text-xs md:text-sm font-medium rounded-xl md:rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <span className="truncate">Usuários</span>
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="history" className="min-h-[44px] px-2 md:px-3 text-xs md:text-sm font-medium rounded-xl md:rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <span className="truncate">Histórico</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Account Settings */}
-          <TabsContent value="account" className="space-y-6">
-            <Card>
+          <TabsContent value="account" className="space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <Card className="border-0 shadow-sm md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl">
               <CardHeader>
                 <CardTitle>Informações da Conta</CardTitle>
                 <CardDescription>
                   Gerencie suas informações pessoais
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex-1 mb-4">
-                  <Label htmlFor="display_name">Nome de Exibição</Label>
+              <CardContent className="space-y-4 md:space-y-6 px-4 py-4 md:px-6 md:py-6">
+                <div className="space-y-2">
+                  <Label htmlFor="display_name" className="text-base font-medium flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    Nome de Exibição
+                  </Label>
                   <Input
                     id="display_name"
                     value={editingProfile.display_name}
@@ -574,11 +628,16 @@ export const Settings = () => {
                       ...editingProfile,
                       display_name: e.target.value
                     })}
+                    className="h-11 text-base md:h-auto md:text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                    placeholder="Digite seu nome de exibição"
                   />
                 </div>
 
-                <div className="mb-4">
-                  <Label htmlFor="email">E-mail</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-base font-medium flex items-center gap-2">
+                    <span className="text-primary">@</span>
+                    E-mail
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -587,11 +646,17 @@ export const Settings = () => {
                       ...editingProfile,
                       email: e.target.value
                     })}
+                    className="h-11 text-base md:h-auto md:text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                    placeholder="Digite seu e-mail"
                   />
                 </div>
 
-                <div className="mb-4">
-                  <Label className="block mb-2">Avatar</Label>
+                <div className="space-y-3">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500"></div>
+                    Avatar
+                  </Label>
+                  <div className="flex flex-col md:flex-row items-center gap-4 p-4 bg-muted/30 rounded-xl">
                   <ImageUpload
                     value={editingProfile.avatar_url || ''}
                     onChange={(url) => setEditingProfile({
@@ -601,23 +666,50 @@ export const Settings = () => {
                     userId={user?.id || ''}
                     disabled={isLoading}
                   />
+                    <div className="text-center md:text-left">
+                      <p className="text-sm text-muted-foreground">
+                        Clique para alterar sua foto de perfil
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Recomendado: 200x200px, formato JPG ou PNG
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-xl border cursor-pointer hover:bg-muted/50 transition-all duration-200"
+                       onClick={() => setShowPasswordFields(!showPasswordFields)}>
                     <input
                       type="checkbox"
                       id="show-password"
                       checked={showPasswordFields}
                       onChange={(e) => setShowPasswordFields(e.target.checked)}
+                      className="w-5 h-5 rounded transition-all duration-200"
                     />
-                    <Label htmlFor="show-password">Alterar senha</Label>
+                    <div>
+                      <Label htmlFor="show-password" className="text-base font-medium cursor-pointer flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-orange-500" />
+                        Alterar Senha
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Clique para definir uma nova senha de acesso
+                      </p>
+                    </div>
                   </div>
 
                   {showPasswordFields && (
-                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                      <div>
-                        <Label htmlFor="password">Nova senha</Label>
+                    <div className="space-y-4 p-4 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900/50 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-3">
+                        <Shield className="w-4 h-4" />
+                        <span className="font-medium text-sm">Alteração de Senha</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-base font-medium flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-red-500" />
+                          Nova senha
+                        </Label>
                         <Input
                           id="password"
                           type="password"
@@ -626,11 +718,16 @@ export const Settings = () => {
                             ...editingProfile,
                             password: e.target.value
                           })}
-                          placeholder="Digite a nova senha"
+                          placeholder="Digite a nova senha (mín. 6 caracteres)"
+                          className="h-11 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20"
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="confirm-password">Confirmar senha</Label>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password" className="text-base font-medium flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-red-500" />
+                          Confirmar senha
+                        </Label>
                         <Input
                           id="confirm-password"
                           type="password"
@@ -640,47 +737,89 @@ export const Settings = () => {
                             confirmPassword: e.target.value
                           })}
                           placeholder="Confirme a nova senha"
+                          className="h-11 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20"
                         />
+                      </div>
+                      
+                      <div className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/30 p-3 rounded-lg">
+                        <p>🔒 A senha deve ter pelo menos 6 caracteres</p>
+                        <p>🔑 Você será desconectado automaticamente após salvar</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-6 flex flex-col md:flex-row gap-3">
                   <Button
                     onClick={updateProfile}
                     disabled={isLoading}
-                    className="flex items-center gap-2"
+                    className="w-full md:w-auto min-h-[44px] flex items-center justify-center gap-2 transition-all duration-200"
                   >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Salvando...</span>
+                      </div>
+                    ) : (
+                      <>
                     <Save className="w-4 h-4" />
-                    {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+                        <span>Salvar Alterações</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Theme Settings */}
-          <TabsContent value="theme" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações de Tema</CardTitle>
-                <CardDescription>
-                  Personalize a aparência do aplicativo
+          {/* Theme Settings - Mobile Optimized */}
+          <TabsContent value="theme" className="space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <Card className="border-0 shadow-none md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl rounded-2xl md:rounded-lg overflow-hidden">
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+                  <div className="flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-xl md:rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/25">
+                    <Sun className="w-5 h-5 md:w-4 md:h-4 text-white" />
+                  </div>
+                  Configurações de Tema
+                </CardTitle>
+                <CardDescription className="text-base md:text-sm text-muted-foreground leading-relaxed">
+                  Escolha como você quer ver a interface do aplicativo
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Modo Escuro */}
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Moon className="w-5 h-5" />
-                    <div>
-                      <Label htmlFor="dark-mode-toggle">Modo Escuro</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {theme === 'dark' ? 'Ativo - Tema escuro aplicado' : 'Desativado - Clique para ativar'}
+              <CardContent className="space-y-3 md:space-y-6 px-3 py-3 md:px-6 md:py-6">
+                {/* Modo Escuro - Mobile Enhanced */}
+                <div className={`group flex items-center justify-between p-5 md:p-4 rounded-2xl md:rounded-xl border-0 md:border transition-all duration-300 cursor-pointer active:scale-[0.98] ${
+                  theme === 'dark' 
+                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 shadow-lg shadow-blue-500/10' 
+                    : 'bg-muted/30 hover:bg-muted/50 border-muted'
+                } min-h-[76px] md:min-h-[68px]`}
+                     onClick={() => theme !== 'dark' && setTheme('dark')}>
+                  <div className="flex items-center gap-4 md:gap-4">
+                    <div className={`flex h-12 w-12 md:h-10 md:w-10 items-center justify-center rounded-2xl md:rounded-lg transition-all duration-300 ${
+                      theme === 'dark' 
+                        ? 'bg-blue-600 shadow-xl shadow-blue-600/30 ring-4 ring-blue-600/10' 
+                        : 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 group-active:scale-95'
+                    }`}>
+                      <Moon className={`w-6 h-6 md:w-5 md:h-5 transition-all duration-300 ${
+                        theme === 'dark' ? 'text-white rotate-12' : 'text-blue-600 dark:text-blue-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Label htmlFor="dark-mode-toggle" className={`text-lg md:text-base font-semibold md:font-medium cursor-pointer transition-colors duration-200 ${
+                        theme === 'dark' ? 'text-blue-900 dark:text-blue-100' : 'text-foreground'
+                      }`}>
+                        Modo Escuro
+                      </Label>
+                      <p className={`text-base md:text-sm mt-1 md:mt-0 leading-tight ${
+                        theme === 'dark' 
+                          ? 'text-blue-700 dark:text-blue-300' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {theme === 'dark' ? '🌙 Ativo • Interface escura' : 'Toque para ativar tema escuro'}
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-center">
                   <Switch
                     id="dark-mode-toggle"
                     checked={theme === 'dark'}
@@ -689,20 +828,44 @@ export const Settings = () => {
                         setTheme('dark');
                       }
                     }}
+                      className="scale-125 md:scale-110 data-[state=checked]:bg-blue-600"
                   />
+                  </div>
                 </div>
 
-                {/* Modo Claro */}
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Sun className="w-5 h-5" />
-                    <div>
-                      <Label htmlFor="light-mode-toggle">Modo Claro</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {theme === 'light' ? 'Ativo - Tema claro aplicado' : 'Desativado - Clique para ativar'}
+                {/* Modo Claro - Mobile Enhanced */}
+                <div className={`group flex items-center justify-between p-5 md:p-4 rounded-2xl md:rounded-xl border-0 md:border transition-all duration-300 cursor-pointer active:scale-[0.98] ${
+                  theme === 'light' 
+                    ? 'bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800 shadow-lg shadow-yellow-500/10' 
+                    : 'bg-muted/30 hover:bg-muted/50 border-muted'
+                } min-h-[76px] md:min-h-[68px]`}
+                     onClick={() => theme !== 'light' && setTheme('light')}>
+                  <div className="flex items-center gap-4 md:gap-4">
+                    <div className={`flex h-12 w-12 md:h-10 md:w-10 items-center justify-center rounded-2xl md:rounded-lg transition-all duration-300 ${
+                      theme === 'light' 
+                        ? 'bg-yellow-500 shadow-xl shadow-yellow-500/30 ring-4 ring-yellow-500/10' 
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/50 group-active:scale-95'
+                    }`}>
+                      <Sun className={`w-6 h-6 md:w-5 md:h-5 transition-all duration-300 ${
+                        theme === 'light' ? 'text-white rotate-12' : 'text-yellow-600 dark:text-yellow-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Label htmlFor="light-mode-toggle" className={`text-lg md:text-base font-semibold md:font-medium cursor-pointer transition-colors duration-200 ${
+                        theme === 'light' ? 'text-yellow-900 dark:text-yellow-100' : 'text-foreground'
+                      }`}>
+                        Modo Claro
+                      </Label>
+                      <p className={`text-base md:text-sm mt-1 md:mt-0 leading-tight ${
+                        theme === 'light' 
+                          ? 'text-yellow-700 dark:text-yellow-300' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {theme === 'light' ? '☀️ Ativo • Interface clara' : 'Toque para ativar tema claro'}
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-center">
                   <Switch
                     id="light-mode-toggle"
                     checked={theme === 'light'}
@@ -711,7 +874,94 @@ export const Settings = () => {
                         setTheme('light');
                       }
                     }}
-                  />
+                      className="scale-125 md:scale-110 data-[state=checked]:bg-yellow-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Theme Preview - Mobile Only */}
+                <div className="mt-4 md:hidden">
+                  <div className="p-4 bg-gradient-to-br from-muted/30 to-muted/50 rounded-2xl border border-muted/50">
+                    <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                      Prévia do Tema Atual
+                    </h4>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-background rounded-xl border shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-primary rounded-lg"></div>
+                          <div>
+                            <p className="text-sm font-medium">PassKey</p>
+                            <p className="text-xs text-muted-foreground">Gerenciador de Senhas</p>
+                          </div>
+                        </div>
+                        <div className="w-4 h-4 bg-muted rounded"></div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                          <div className="w-4 h-4 bg-primary/50 rounded"></div>
+                        </div>
+                        <div className="h-12 bg-muted rounded-xl flex items-center justify-center">
+                          <div className="w-4 h-4 bg-muted-foreground/30 rounded"></div>
+                        </div>
+                        <div className="h-12 bg-accent rounded-xl flex items-center justify-center">
+                          <div className="w-4 h-4 bg-accent-foreground/30 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground text-center mt-3">
+                      {theme === 'dark' ? '🌙 Tema escuro ativo' : '☀️ Tema claro ativo'}
+                    </p>
+                  </div>
+                </div>
+
+
+
+                {/* Theme Benefits - Mobile Only */}
+                <div className="mt-4 md:hidden">
+                  <div className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border border-primary/20">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-primary mb-3">
+                      <div className="w-3 h-3 rounded-full bg-primary"></div>
+                      {theme === 'dark' ? 'Benefícios do Tema Escuro' : 'Benefícios do Tema Claro'}
+                    </h4>
+                    
+                    <div className="space-y-2">
+                      {theme === 'dark' ? (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <p className="text-xs text-muted-foreground">Reduz o cansaço visual em ambientes escuros</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <p className="text-xs text-muted-foreground">Economiza bateria em telas OLED</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                            <p className="text-xs text-muted-foreground">Ideal para uso noturno</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <p className="text-xs text-muted-foreground">Melhor legibilidade em ambientes claros</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                            <p className="text-xs text-muted-foreground">Visual mais limpo e tradicional</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <p className="text-xs text-muted-foreground">Ideal para uso durante o dia</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -719,74 +969,252 @@ export const Settings = () => {
 
           {/* Users Management (Admin Only) */}
           {isAdmin && (
-            <TabsContent value="users" className="space-y-6">
+            <TabsContent value="users" className="space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
               <UserManagementTab />
             </TabsContent>
           )}
 
-          {/* Password History */}
-          <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Histórico de Senhas</CardTitle>
-                <CardDescription>
-                  Visualize seu histórico de senhas cadastradas
+          {/* Password History - Mobile Enhanced */}
+          <TabsContent value="history" className="space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <Card className="border-0 shadow-none md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl rounded-2xl md:rounded-lg overflow-hidden">
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+                  <div className="flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-2xl md:rounded-lg bg-gradient-to-br from-green-500 to-blue-600 shadow-lg shadow-green-500/25">
+                    <History className="w-6 h-6 md:w-4 md:h-4 text-white" />
+                  </div>
+                  Histórico de Senhas
+                </CardTitle>
+                <CardDescription className="text-base md:text-sm text-muted-foreground leading-relaxed">
+                  Acompanhe todas as senhas que você cadastrou na plataforma
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {passwordHistory.map((password) => (
-                    <div key={password.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{password.title}</p>
-                        <p className="text-sm text-muted-foreground">{password.email}</p>
-                        <div className="flex gap-2 mt-1">
-                          <Badge variant="outline">{translateCategory(password.category.name)}</Badge>
-                          <Badge variant="secondary">{translateAccountType(password.account_type.name)}</Badge>
+              <CardContent className="px-3 py-3 md:px-6 md:py-6">
+                {/* Search Bar - Mobile First */}
+                {passwordHistory.length > 0 && (
+                  <div className="mb-4 md:mb-6">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 md:w-4 md:h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar no histórico..."
+                        value={historySearchTerm}
+                        onChange={(e) => setHistorySearchTerm(e.target.value)}
+                        className="pl-12 md:pl-10 h-12 md:h-10 text-base md:text-sm bg-muted/30 border-0 md:border rounded-2xl md:rounded-lg focus:bg-background transition-all duration-200"
+                      />
+                      {historySearchTerm && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
+                          onClick={() => setHistorySearchTerm('')}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Search Results Counter - Mobile */}
+                    {historySearchTerm && (
+                      <div className="mt-3 flex items-center justify-between px-1">
+                        <p className="text-sm text-muted-foreground">
+                          {filteredPasswordHistory.length} de {passwordHistory.length} {passwordHistory.length === 1 ? 'resultado' : 'resultados'}
+                        </p>
+                        {filteredPasswordHistory.length !== passwordHistory.length && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setHistorySearchTerm('')}
+                            className="text-xs text-primary hover:text-primary/80 h-auto p-1"
+                          >
+                            Limpar filtro
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-3 md:space-y-4">
+                  {filteredPasswordHistory.map((password, index) => (
+                    <div key={password.id} className="group relative overflow-hidden rounded-2xl md:rounded-xl bg-gradient-to-r from-muted/20 to-muted/30 md:from-muted/30 md:to-muted/30 border-0 md:border transition-all duration-300 hover:from-muted/30 hover:to-muted/40 md:hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md active:scale-[0.99]"
+                         style={{ 
+                           animationDelay: `${index * 50}ms`,
+                           touchAction: 'manipulation'
+                         }}>
+                      {/* Mobile-optimized layout */}
+                      <div className="p-4 md:p-4 space-y-3 md:space-y-2">
+                        {/* Header Row - Mobile Enhanced */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                              <div className="flex-shrink-0 w-8 h-8 md:w-6 md:h-6 rounded-xl md:rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                                <History className="w-4 h-4 md:w-3 md:h-3 text-primary" />
+                              </div>
+                              <h3 className="font-semibold text-lg md:text-base text-foreground truncate group-hover:text-primary transition-colors duration-200">
+                                {password.title}
+                              </h3>
+                            </div>
+                            <p className="text-base md:text-sm text-muted-foreground truncate pl-11 md:pl-9 -mt-1">
+                              {password.email}
+                            </p>
+                          </div>
+                          
+                          {/* Date Badge - Mobile Optimized */}
+                          <div className="flex-shrink-0">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-background/60 rounded-xl border border-muted/50">
+                                <Clock className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {new Date(password.created_at).toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(password.created_at).toLocaleTimeString('pt-BR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tags Row - Mobile Enhanced */}
+                        <div className="flex flex-wrap gap-2 pl-11 md:pl-9">
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs font-medium px-3 py-1 rounded-xl border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-all duration-200"
+                          >
+                            {translateCategory(password.category.name)}
+                          </Badge>
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs font-medium px-3 py-1 rounded-xl bg-secondary/80 hover:bg-secondary transition-all duration-200"
+                          >
+                            {translateAccountType(password.account_type.name)}
+                          </Badge>
                           {isAdmin && (
-                            <Badge variant="default">{password.user_email}</Badge>
+                            <Badge 
+                              variant="default" 
+                              className="text-xs font-medium px-3 py-1 rounded-xl bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all duration-200"
+                            >
+                              {password.user_email}
+                            </Badge>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(password.created_at).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
+                      
+                      {/* Subtle gradient overlay for depth */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                     </div>
                   ))}
+
+                  {/* Enhanced Empty State */}
                   {passwordHistory.length === 0 && (
-                    <div className="text-center py-8">
-                      <History className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">Nenhuma senha encontrada no histórico</p>
+                    <div className="text-center py-16 px-4">
+                      <div className="max-w-sm mx-auto">
+                        <div className="relative mb-8">
+                          <div className="flex h-24 w-24 md:h-20 md:w-20 items-center justify-center mx-auto rounded-3xl bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 shadow-lg">
+                            <History className="w-12 h-12 md:w-10 md:h-10 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        </div>
+                        <h3 className="text-xl md:text-lg font-bold mb-4 text-foreground">
+                          Sem histórico ainda
+                        </h3>
+                        <p className="text-base md:text-sm text-muted-foreground leading-relaxed mb-6">
+                          Suas senhas cadastradas aparecerão aqui para você acompanhar todo o histórico de atividades.
+                        </p>
+                        <div className="space-y-3">
+                          <Button 
+                            onClick={() => navigate('/dashboard')} 
+                            className="w-full min-h-[48px] md:min-h-[44px] text-base md:text-sm font-medium rounded-2xl md:rounded-lg transition-all duration-200"
+                          >
+                            <ArrowLeft className="w-5 h-5 md:w-4 md:h-4 mr-2" />
+                            Cadastrar Primeira Senha
+                          </Button>
+                          <p className="text-xs text-muted-foreground">
+                            💡 Dica: Use o Dashboard para adicionar suas senhas
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Search Results State */}
+                  {passwordHistory.length > 0 && filteredPasswordHistory.length === 0 && historySearchTerm && (
+                    <div className="text-center py-12 px-4">
+                      <div className="max-w-sm mx-auto">
+                        <div className="flex h-16 w-16 items-center justify-center mx-auto mb-6 rounded-2xl bg-muted/30">
+                          <Search className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-3 text-foreground">
+                          Nenhum resultado encontrado
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                          Não encontramos senhas que correspondem a "{historySearchTerm}".
+                        </p>
+                        <Button 
+                          variant="outline"
+                          onClick={() => setHistorySearchTerm('')}
+                          className="min-h-[44px] text-sm rounded-xl transition-all duration-200"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Limpar Busca
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {/* Stats Footer - Mobile Enhanced */}
+                {passwordHistory.length > 0 && (
+                  <div className="mt-6 md:mt-4 p-4 bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-2xl md:rounded-lg border border-primary/10">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="font-medium">
+                          {passwordHistory.length} senha{passwordHistory.length !== 1 ? 's' : ''} no total
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Última atualização: hoje
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Dialog para editar usuário */}
+      {/* Dialog para editar usuário - Mobile Optimized */}
       <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>
-              Edite as informações do usuário selecionado.
+        <DialogContent className="w-full max-w-[95vw] mx-2 sm:max-w-[500px] sm:mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-left pb-4">
+            <DialogTitle className="flex items-center gap-3 text-lg font-semibold">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              Editar Usuário
+            </DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              Modifique as informações e permissões do usuário selecionado.
             </DialogDescription>
           </DialogHeader>
           {editingUser && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-avatar" className="block mb-2">Avatar</Label>
+            <div className="space-y-6 py-2">
+              <div className="space-y-3">
+                <Label htmlFor="edit-avatar" className="text-base font-medium flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500"></div>
+                  Avatar do Usuário
+                </Label>
+                <div className="flex flex-col items-center gap-4 p-4 bg-muted/30 rounded-xl border">
                 <ImageUpload
                   value={editingUser.avatar_url || ''}
                   onChange={(url) => setEditingUser({
@@ -796,9 +1224,17 @@ export const Settings = () => {
                   userId={editingUser.user_id || ''}
                   disabled={isLoading}
                 />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Clique para alterar a foto do usuário
+                  </p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-username">Nome de usuário</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-username" className="text-base font-medium flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Nome de Usuário
+                </Label>
                 <Input
                   id="edit-username"
                   value={editingUser.display_name || ''}
@@ -807,10 +1243,15 @@ export const Settings = () => {
                     display_name: e.target.value
                   })}
                   placeholder="Digite o nome de usuário"
+                  className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-email">Email</Label>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-email" className="text-base font-medium flex items-center gap-2">
+                  <span className="text-primary">@</span>
+                  Email do Usuário
+                </Label>
                 <Input
                   id="edit-email"
                   type="email"
@@ -819,11 +1260,15 @@ export const Settings = () => {
                     ...editingUser,
                     email: e.target.value
                   })}
-                  placeholder="Digite o email"
+                  placeholder="Digite o email do usuário"
+                  className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-is-admin">Tipo de usuário</Label>
+              <div className="space-y-2">
+                <Label htmlFor="edit-is-admin" className="text-base font-medium flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-orange-500" />
+                  Tipo de Usuário
+                </Label>
                 <Select
                   value={editingUser.is_admin ? 'admin' : 'common'}
                   onValueChange={(value) => setEditingUser({
@@ -831,17 +1276,31 @@ export const Settings = () => {
                     is_admin: value === 'admin'
                   })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                    <SelectValue placeholder="Selecione o tipo de usuário" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="common">Usuário Comum</SelectItem>
+                    <SelectItem value="admin" className="flex items-center gap-2 py-3">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-orange-500" />
+                        <span>Administrador</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="common" className="flex items-center gap-2 py-3">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-500" />
+                        <span>Usuário Comum</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-is-active">Status</Label>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-is-active" className="text-base font-medium flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full ${editingUser.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  Status do Usuário
+                </Label>
                 <Select
                   value={editingUser.is_active ? 'active' : 'inactive'}
                   onValueChange={(value) => setEditingUser({
@@ -849,43 +1308,78 @@ export const Settings = () => {
                     is_active: value === 'active'
                   })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                    <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Ativo</SelectItem>
-                    <SelectItem value="inactive">Inativo</SelectItem>
+                    <SelectItem value="active" className="flex items-center gap-2 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span>Ativo</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="inactive" className="flex items-center gap-2 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span>Inativo</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           )}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
             <Button
               variant="outline"
               onClick={() => setIsEditingUser(false)}
+              className="w-full sm:w-auto min-h-[48px] order-2 sm:order-1 transition-all duration-200"
+              disabled={isLoading}
             >
+              <X className="w-4 h-4 mr-2" />
               Cancelar
             </Button>
-            <Button onClick={handleUpdateUser}>
-              Salvar Alterações
+            <Button 
+              onClick={handleUpdateUser}
+              className="w-full sm:w-auto min-h-[48px] order-1 sm:order-2 transition-all duration-200"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>Salvando...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Alterações</span>
+                </div>
+              )}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para editar perfil */}
+      {/* Dialog para editar perfil - Mobile Optimized */}
       <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Perfil</DialogTitle>
-            <DialogDescription>
-              Edite suas informações pessoais.
+        <DialogContent className="w-full max-w-[95vw] mx-2 sm:max-w-[500px] sm:mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-left pb-4">
+            <DialogTitle className="flex items-center gap-3 text-lg font-semibold">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              Editar Meu Perfil
+            </DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              Atualize suas informações pessoais e configurações de conta.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="profile-username">Nome de usuário</Label>
+          <div className="space-y-6 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-username" className="text-base font-medium flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Meu Nome de Exibição
+              </Label>
               <Input
                 id="profile-username"
                 value={editingProfile.display_name || ''}
@@ -893,11 +1387,15 @@ export const Settings = () => {
                   ...editingProfile,
                   display_name: e.target.value
                 })}
-                placeholder="Digite o nome de usuário"
+                placeholder="Digite seu nome de exibição"
+                className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="profile-email">Email</Label>
+            <div className="space-y-2">
+              <Label htmlFor="profile-email" className="text-base font-medium flex items-center gap-2">
+                <span className="text-primary">@</span>
+                Meu Email
+              </Label>
               <Input
                 id="profile-email"
                 type="email"
@@ -906,10 +1404,15 @@ export const Settings = () => {
                   ...editingProfile,
                   email: e.target.value
                 })}
-                placeholder="Digite o email"
+                placeholder="Digite seu email"
+                className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
+              <p className="text-xs text-muted-foreground">
+                ⚠️ Alterar o email requer confirmação por email
+              </p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-xl border">
               <input
                 type="checkbox"
                 id="change-password"
@@ -920,13 +1423,28 @@ export const Settings = () => {
                   password: e.target.checked ? editingProfile.password : '',
                   confirmPassword: e.target.checked ? editingProfile.confirmPassword : ''
                 })}
-              />
-              <Label htmlFor="change-password">Alterar senha</Label>
+                  className="w-5 h-5 rounded transition-all duration-200"
+                />
+                <div>
+                  <Label htmlFor="change-password" className="text-base font-medium cursor-pointer flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-red-500" />
+                    Alterar Senha
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Marque para definir uma nova senha para sua conta
+                  </p>
             </div>
+              </div>
+              
             {editingProfile.changePassword && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="profile-password">Nova senha</Label>
+                <div className="space-y-4 p-4 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900/50">
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <Shield className="w-4 h-4" />
+                    <span className="font-medium text-sm">Alteração de Senha</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-password" className="text-base font-medium">Nova senha</Label>
                   <Input
                     id="profile-password"
                     type="password"
@@ -935,11 +1453,13 @@ export const Settings = () => {
                       ...editingProfile,
                       password: e.target.value
                     })}
-                    placeholder="Digite a nova senha"
+                      placeholder="Digite a nova senha (mín. 6 caracteres)"
+                      className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20"
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="profile-confirm-password">Confirmar nova senha</Label>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-confirm-password" className="text-base font-medium">Confirmar nova senha</Label>
                   <Input
                     id="profile-confirm-password"
                     type="password"
@@ -949,24 +1469,75 @@ export const Settings = () => {
                       confirmPassword: e.target.value
                     })}
                     placeholder="Confirme a nova senha"
+                      className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20"
                   />
                 </div>
-              </>
+                  
+                  <div className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/30 p-3 rounded-lg">
+                    <p>🔒 A senha deve ter pelo menos 6 caracteres</p>
+                    <p>🔑 Você será deslogado após a alteração</p>
+                  </div>
+                </div>
             )}
           </div>
-          <div className="flex justify-end gap-2">
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
             <Button
               variant="outline"
               onClick={() => setIsEditingProfile(false)}
+              className="w-full sm:w-auto min-h-[48px] order-2 sm:order-1 transition-all duration-200"
+              disabled={isLoading}
             >
+              <X className="w-4 h-4 mr-2" />
               Cancelar
             </Button>
-            <Button onClick={updateProfile}>
-              Salvar Alterações
+            <Button 
+              onClick={updateProfile}
+              className="w-full sm:w-auto min-h-[48px] order-1 sm:order-2 transition-all duration-200"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>Salvando Perfil...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Alterações</span>
+                </div>
+              )}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile FAB - Floating Action Button */}
+      <div className="fixed bottom-6 right-6 md:hidden z-50">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-0 bg-primary hover:bg-primary/90"
+          title="Ir para Dashboard"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <div className="fixed bottom-6 left-6 md:hidden z-50">
+          <Button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            variant="outline"
+            size="sm"
+            className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 p-0 bg-background/80 backdrop-blur-sm border-primary/20 animate-in fade-in-0 slide-in-from-bottom-2"
+            title="Voltar ao Topo"
+          >
+            <ArrowLeft className="w-4 h-4 rotate-90" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

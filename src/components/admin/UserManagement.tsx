@@ -96,7 +96,7 @@ export const UserManagement: React.FC = () => {
       }
 
       // Tentar buscar informações de autenticação usando a API de admin
-      let authUsers: any[] = [];
+      let authUsers: Array<{ id: string; email?: string; email_confirmed_at?: string; last_sign_in_at?: string; }> = [];
       try {
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
           perPage: 1000 // Garantir que todos os usuários sejam retornados
@@ -443,97 +443,131 @@ export const UserManagement: React.FC = () => {
 
     if (usersToShow.length === 0) {
       return (
-        <div className="text-center py-8">
-          <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">{emptyMessage}</p>
+        <div className="text-center py-12 px-4">
+          <div className="flex h-20 w-20 md:h-16 md:w-16 items-center justify-center mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
+            <Users className="w-10 h-10 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h3 className="text-lg md:text-base font-semibold mb-3">{emptyMessage}</h3>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed max-w-sm mx-auto">
+            {searchQuery ? 'Tente ajustar os termos de busca ou limpe o filtro.' : 'Atualize a lista para ver os usuários cadastrados.'}
+          </p>
           <Button
             variant="outline"
-            className="mt-4"
+            className="min-h-[44px] md:min-h-auto px-6"
             onClick={fetchUsers}
+            disabled={isLoading}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Tentar novamente
+            Atualizar Lista
           </Button>
         </div>
       );
     }
 
     return usersToShow.map((userItem) => (
-      <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar>
+      <div key={userItem.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-4 bg-muted/20 md:bg-transparent border-0 md:border rounded-2xl md:rounded-lg space-y-4 md:space-y-0">
+        <div className="flex items-center gap-3 md:gap-3 flex-1 min-w-0">
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-12 w-12 md:h-10 md:w-10">
               <AvatarImage src={userItem.avatar_url} />
-              <AvatarFallback>{getInitials(userItem.display_name)}</AvatarFallback>
+              <AvatarFallback className="text-sm font-medium">{getInitials(userItem.display_name)}</AvatarFallback>
             </Avatar>
             {isUserOnline(userItem) && (
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+              <span className="absolute bottom-0 right-0 w-4 h-4 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-background"></span>
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium">{userItem.display_name}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-semibold text-base md:text-sm truncate">{userItem.display_name}</p>
             </div>
-            <p className="text-sm text-muted-foreground">{userItem.email}</p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              <Badge variant={userItem.is_admin ? "secondary" : "default"}>
+            <p className="text-sm md:text-sm text-muted-foreground truncate mb-2">{userItem.email}</p>
+            
+            <div className="flex flex-wrap gap-1 md:gap-2 mb-2">
+              <Badge 
+                variant={userItem.is_admin ? "secondary" : "default"}
+                className="text-xs px-2 py-1"
+              >
                 {userItem.is_admin ? "Admin" : "Usuário Comum"}
               </Badge>
-              <Badge variant={userItem.is_active ? "default" : "destructive"}>
+              <Badge 
+                variant={userItem.is_active ? "default" : "destructive"}
+                className="text-xs px-2 py-1"
+              >
                 {userItem.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
               {isUserOnline(userItem) ? (
-                <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">Online</Badge>
+                <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1">Online</Badge>
               ) : (
-                <Badge variant="outline" className="border-gray-500 text-gray-500">Offline</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-500 text-xs px-2 py-1">Offline</Badge>
               )}
               {!userItem.confirmed_at && (
-                <Badge variant="outline" className="border-orange-500 text-orange-500">Email não confirmado</Badge>
+                <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs px-2 py-1">Email não confirmado</Badge>
               )}
             </div>
-            <div className="flex flex-col text-xs text-muted-foreground mt-1">
-              <span>
-                <Clock className="w-3 h-3 inline mr-1" />
+            
+            <div className="flex flex-col text-xs text-muted-foreground space-y-1">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
                 {isUserOnline(userItem) ? 'Online agora' : `Visto: ${getLastSeenText(userItem.last_seen)}`}
               </span>
-              <span>
+              <span className="hidden md:block">
                 Criado em: {formatDate(userItem.created_at)}
               </span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEditUser(userItem)}
-            title="Editar usuário"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => toggleUserStatus(userItem.user_id, userItem.is_active)}
-            title={userItem.is_active ? "Desativar usuário" : "Ativar usuário"}
-            disabled={userItem.user_id === user?.id && userItem.is_admin}
-          >
-            {userItem.is_active ? (
-              <UserX className="w-4 h-4" />
-            ) : (
-              <UserCheck className="w-4 h-4" />
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDeleteUser(userItem.user_id, userItem.display_name)}
-            title="Remover usuário"
-            className="hover:bg-destructive hover:text-destructive-foreground"
-            disabled={userItem.user_id === user?.id && userItem.is_admin}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+        
+        {/* Mobile Action Buttons */}
+        <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-3 md:flex gap-2 md:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEditUser(userItem)}
+              title="Editar usuário"
+              className="h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3"
+            >
+              <Edit className="w-4 h-4" />
+              <span className="text-xs md:hidden">Editar</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleUserStatus(userItem.user_id, userItem.is_active)}
+              title={userItem.is_active ? "Desativar usuário" : "Ativar usuário"}
+              disabled={userItem.user_id === user?.id && userItem.is_admin}
+              className={`h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 ${
+                userItem.is_active 
+                  ? 'hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 dark:hover:bg-orange-950 dark:hover:border-orange-800' 
+                  : 'hover:bg-green-50 hover:border-green-200 hover:text-green-600 dark:hover:bg-green-950 dark:hover:border-green-800'
+              }`}
+            >
+              {userItem.is_active ? (
+                <>
+                  <UserX className="w-4 h-4" />
+                  <span className="text-xs md:hidden">Pausar</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-4 h-4" />
+                  <span className="text-xs md:hidden">Ativar</span>
+                </>
+              )}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDeleteUser(userItem.user_id, userItem.display_name)}
+              title="Remover usuário"
+              className="h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 hover:bg-red-50 hover:border-red-200 hover:text-red-600 dark:hover:bg-red-950 dark:hover:border-red-800"
+              disabled={userItem.user_id === user?.id && userItem.is_admin}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="text-xs md:hidden">Remover</span>
+            </Button>
+          </div>
         </div>
       </div>
     ));
@@ -541,17 +575,27 @@ export const UserManagement: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <Card>
+      <Card className="border-0 shadow-none md:border md:shadow-md rounded-2xl md:rounded-lg">
         <CardHeader>
-          <CardTitle>Acesso Restrito</CardTitle>
-          <CardDescription>
-            Esta seção está disponível apenas para administradores.
+          <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+            <div className="flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-xl md:rounded-lg bg-gradient-to-br from-red-500 to-pink-500 shadow-lg shadow-red-500/25">
+              <Shield className="w-5 h-5 md:w-4 md:h-4 text-white" />
+            </div>
+            Acesso Restrito
+          </CardTitle>
+          <CardDescription className="text-base md:text-sm text-muted-foreground leading-relaxed">
+            Esta seção está disponível apenas para administradores do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">Você não tem permissão para acessar esta área.</p>
+          <div className="text-center py-12 px-4">
+            <div className="flex h-20 w-20 md:h-16 md:w-16 items-center justify-center mx-auto mb-6 rounded-full bg-gradient-to-br from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30">
+              <Shield className="w-10 h-10 md:w-8 md:h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-lg font-semibold mb-3">Permissão Necessária</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+              Você precisa de privilégios de administrador para acessar o gerenciamento de usuários.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -560,14 +604,21 @@ export const UserManagement: React.FC = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="border-0 shadow-none md:border md:shadow-md rounded-2xl md:rounded-lg overflow-hidden">
+        <CardHeader className="pb-4 md:pb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
             <div>
-              <CardTitle>Gerenciamento de Usuários</CardTitle>
-              <CardDescription>
+              <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+                <div className="flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-xl md:rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 shadow-lg shadow-blue-500/25">
+                  <Users className="w-5 h-5 md:w-4 md:h-4 text-white" />
+                </div>
+                Gerenciamento de Usuários
+              </CardTitle>
+              <CardDescription className="text-base md:text-sm text-muted-foreground leading-relaxed mt-2">
                 Monitore e gerencie todos os usuários cadastrados no sistema em tempo real.
-                Total de {users.length} usuários no banco de dados, sendo {onlineUsers.length} online agora.
+                <span className="block mt-1">
+                  Total de <span className="font-medium text-primary">{users.length}</span> usuários • <span className="font-medium text-green-600">{onlineUsers.length}</span> online agora
+                </span>
               </CardDescription>
             </div>
             <Button
@@ -582,43 +633,62 @@ export const UserManagement: React.FC = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <div className="flex items-center gap-4 mb-4">
+        <CardContent className="px-3 py-3 md:px-6 md:py-6">
+          <div className="mb-4 md:mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:gap-4">
               <Input
                 placeholder="Buscar por nome, email ou ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-md"
+                className="h-11 md:h-auto text-base md:text-sm flex-1 md:max-w-md"
               />
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSearchQuery('')}
-                  className="h-8 px-2"
+                  className="h-11 md:h-8 px-4 md:px-2 w-full sm:w-auto"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 mr-2 md:mr-0" />
+                  <span className="md:hidden">Limpar</span>
                 </Button>
               )}
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="all">Todos ({filterUsersBySearch(users).length}/{users.length})</TabsTrigger>
-                <TabsTrigger value="active">Ativos ({filterUsersBySearch(activeUsers).length}/{activeUsers.length})</TabsTrigger>
-                <TabsTrigger value="online">Online ({filterUsersBySearch(onlineUsers).length}/{onlineUsers.length})</TabsTrigger>
-                <TabsTrigger value="common">Comuns ({filterUsersBySearch(commonUsers).length}/{commonUsers.length})</TabsTrigger>
-                <TabsTrigger value="admin">Admins ({filterUsersBySearch(adminUsers).length}/{adminUsers.length})</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 p-1 h-auto">
+                <TabsTrigger value="all" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
+                  <span className="font-medium">Todos</span>
+                  <span className="text-xs opacity-75">({filterUsersBySearch(users).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="active" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
+                  <span className="font-medium">Ativos</span>
+                  <span className="text-xs opacity-75">({filterUsersBySearch(activeUsers).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="online" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
+                  <span className="font-medium">Online</span>
+                  <span className="text-xs opacity-75">({filterUsersBySearch(onlineUsers).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="common" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
+                  <span className="font-medium">Comuns</span>
+                  <span className="text-xs opacity-75">({filterUsersBySearch(commonUsers).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="admin" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
+                  <span className="font-medium">Admins</span>
+                  <span className="text-xs opacity-75">({filterUsersBySearch(adminUsers).length})</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-2 text-muted-foreground">Carregando usuários...</p>
+              <div className="text-center py-12 px-4">
+                <div className="flex h-16 w-16 md:h-12 md:w-12 items-center justify-center mx-auto mb-4 rounded-full bg-primary/10">
+                  <div className="animate-spin rounded-full h-8 w-8 md:h-6 md:w-6 border-2 border-primary border-t-transparent"></div>
+                </div>
+                <h3 className="text-base md:text-sm font-medium mb-2">Carregando usuários...</h3>
+                <p className="text-sm text-muted-foreground">Buscando informações atualizadas dos usuários</p>
               </div>
             ) : (
               renderUsersList()
