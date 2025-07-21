@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { UserManagementTab } from './UserManagementTab';
 import {
   Settings as SettingsIcon,
   User,
@@ -719,79 +720,7 @@ export const Settings = () => {
           {/* Users Management (Admin Only) */}
           {isAdmin && (
             <TabsContent value="users" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gerenciamento de Usuários</CardTitle>
-                  <CardDescription>
-                    Monitore e gerencie todos os usuários cadastrados no sistema em tempo real
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {users.map((userItem) => (
-                      <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={userItem.avatar_url} />
-                            <AvatarFallback>
-                              {getInitials(userItem.display_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{userItem.display_name}</p>
-                            <p className="text-sm text-muted-foreground">{userItem.email}</p>
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant={userItem.is_admin ? "secondary" : "default"}>{userItem.is_admin ? "Admin" : "Usuário Comum"}</Badge>
-                              <Badge variant={userItem.is_active ? "default" : "destructive"}>
-                                {userItem.is_active ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditUser(userItem)}
-                            title="Editar usuário"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleUserStatus(userItem.user_id, userItem.is_active)}
-                            title={userItem.is_active ? "Desativar usuário" : "Ativar usuário"}
-                            disabled={userItem.user_id === user?.id && userItem.is_admin}
-                          >
-                            {userItem.is_active ? (
-                              <UserX className="w-4 h-4" />
-                            ) : (
-                              <UserCheck className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteUser(userItem.user_id, userItem.display_name)}
-                            title="Remover usuário"
-                            className="hover:bg-destructive hover:text-destructive-foreground"
-                            disabled={userItem.user_id === user?.id && userItem.is_admin}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {users.length === 0 && (
-                      <div className="text-center py-8">
-                        <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">Nenhum usuário cadastrado encontrado</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <UserManagementTab />
             </TabsContent>
           )}
 
