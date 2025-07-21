@@ -33,6 +33,8 @@ interface UserProfile {
   avatar_url?: string;
   is_admin: boolean;
   is_active: boolean;
+  is_online: boolean;
+  last_seen?: string;
   created_at: string;
   updated_at: string;
   last_sign_in?: string;
@@ -132,6 +134,8 @@ export const UserManagement: React.FC = () => {
           avatar_url: profile.avatar_url,
           is_admin: profile.is_admin === true, // Verificação explícita
           is_active: profile.is_active === true, // Verificação explícita
+          is_online: profile.is_online === true, // Status online real do banco
+          last_seen: profile.last_seen,
           created_at: profile.created_at,
           updated_at: profile.updated_at,
           last_sign_in: authUser?.last_sign_in_at,
@@ -192,22 +196,37 @@ export const UserManagement: React.FC = () => {
       console.log('Atualizando listas filtradas, total de usuários:', users.length);
 
       setActiveUsers(users.filter(u => u.is_active));
-      setOnlineUsers(users.filter(u => isUserOnline(u.last_sign_in)));
+      setOnlineUsers(users.filter(u => isUserOnline(u)));
       setCommonUsers(users.filter(u => !u.is_admin));
       setAdminUsers(users.filter(u => u.is_admin));
     }
   }, [users]);
 
-  // Verificar se o usuário está online (login nas últimas 2 horas)
-  const isUserOnline = (lastSignIn?: string) => {
-    if (!lastSignIn) return false;
+  // Verificar se o usuário está online (baseado no campo is_online do banco)
+  const isUserOnline = (userProfile: UserProfile) => {
+    return userProfile.is_online === true;
+  };
+
+  // Formatar tempo desde a última atividade
+  const getLastSeenText = (lastSeen?: string) => {
+    if (!lastSeen) return 'Nunca visto';
+
     try {
-      const lastLogin = new Date(lastSignIn);
+      const lastSeenDate = new Date(lastSeen);
       const now = new Date();
-      const hoursSinceLogin = (now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
-      return hoursSinceLogin < 2;
+      const diffMs = now.getTime() - lastSeenDate.getTime();
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+      if (diffMinutes < 1) return 'Agora mesmo';
+      if (diffMinutes < 60) return `${diffMinutes} min atrás`;
+
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) return `${diffHours}h atrás`;
+
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays} dias atrás`;
     } catch (err) {
-      return false;
+      return 'Data inválida';
     }
   };
 
@@ -447,7 +466,7 @@ export const UserManagement: React.FC = () => {
               <AvatarImage src={userItem.avatar_url} />
               <AvatarFallback>{getInitials(userItem.display_name)}</AvatarFallback>
             </Avatar>
-            {isUserOnline(userItem.last_sign_in) && (
+            {isUserOnline(userItem) && (
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
             )}
           </div>
@@ -463,8 +482,10 @@ export const UserManagement: React.FC = () => {
               <Badge variant={userItem.is_active ? "default" : "destructive"}>
                 {userItem.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
-              {isUserOnline(userItem.last_sign_in) && (
+              {isUserOnline(userItem) ? (
                 <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">Online</Badge>
+              ) : (
+                <Badge variant="outline" className="border-gray-500 text-gray-500">Offline</Badge>
               )}
               {!userItem.confirmed_at && (
                 <Badge variant="outline" className="border-orange-500 text-orange-500">Email não confirmado</Badge>
@@ -473,7 +494,7 @@ export const UserManagement: React.FC = () => {
             <div className="flex flex-col text-xs text-muted-foreground mt-1">
               <span>
                 <Clock className="w-3 h-3 inline mr-1" />
-                Último login: {formatDate(userItem.last_sign_in)}
+                {isUserOnline(userItem) ? 'Online agora' : `Visto: ${getLastSeenText(userItem.last_seen)}`}
               </span>
               <span>
                 Criado em: {formatDate(userItem.created_at)}

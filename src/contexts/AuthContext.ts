@@ -8,6 +8,8 @@ export interface Profile {
   avatar_url: string | null;
   is_active: boolean | null;
   is_admin: boolean | null;
+  is_online: boolean | null;
+  last_seen: string | null;
   created_at: string;
   updated_at: string;
 }
