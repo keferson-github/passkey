@@ -151,6 +151,7 @@ export const Settings = () => {
 
   const fetchAllPasswordHistory = useCallback(async () => {
     try {
+      // Admin users also see only their own password history
       const { data, error } = await supabase
         .from('passwords')
         .select(`
@@ -162,25 +163,15 @@ export const Settings = () => {
           category:password_categories(name),
           account_type:account_types(name)
         `)
+        .eq('user_id', user?.id) // Filter by current user's ID
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get user display names for each password from profiles
-      const passwordsWithUserEmails = await Promise.all(
-        (data || []).map(async (password) => {
-          const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('user_id', password.user_id)
-            .single();
-
-          return {
-            ...password,
-            user_email: userProfile?.display_name || 'N/A'
-          };
-        })
-      );
+      const passwordsWithUserEmails = (data || []).map(password => ({
+        ...password,
+        user_email: user?.email || 'N/A'
+      }));
 
       setPasswordHistory(passwordsWithUserEmails);
     } catch (error) {
@@ -191,7 +182,7 @@ export const Settings = () => {
         variant: "destructive",
       });
     }
-  }, []);
+  }, [user?.id, user?.email]);
 
   const fetchUserPasswordHistory = useCallback(async () => {
     try {
@@ -272,7 +263,7 @@ export const Settings = () => {
     const fetchData = async () => {
       if (isAdmin) {
         await fetchUsers();
-        await fetchAllPasswordHistory();
+        await fetchAllPasswordHistory(); // Admin also sees only their own password history
       } else {
         await fetchProfile();
         await fetchUserPasswordHistory();
@@ -810,10 +801,7 @@ export const Settings = () => {
               <CardHeader>
                 <CardTitle>Histórico de Senhas</CardTitle>
                 <CardDescription>
-                  {isAdmin
-                    ? 'Visualize o histórico de senhas de todos os usuários'
-                    : 'Visualize seu histórico de senhas cadastradas'
-                  }
+                  Visualize seu histórico de senhas cadastradas
                 </CardDescription>
               </CardHeader>
               <CardContent>
