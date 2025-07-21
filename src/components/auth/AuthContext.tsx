@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +10,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  // Hook de navegação deve ser chamado dentro do componente
+  const navigate = useNavigate();
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -96,6 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Só definir loading como false após a primeira verificação
         if (isInitialized) {
+          setLoading(false);
+        }
+        
+        // Se for um evento de logout, garantir que loading seja false imediatamente
+        if (event === 'SIGNED_OUT') {
           setLoading(false);
         }
       }
@@ -226,19 +235,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Marcar como offline antes de fazer logout
+      // Tenta marcar como offline, se houver usuário
       if (user?.id) {
-        console.log('Fazendo logout, marcando como offline:', user.id);
         await updateOnlineStatus(user.id, false);
       }
 
-      await supabase.auth.signOut();
-      setProfile(null);
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
-        variant: "default"
-      });
+      // Tenta fazer logout no Supabase, mesmo sem usuário
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Se for erro 403, trata como logout forçado
+        if (error.status === 403) {
+          toast({
+            title: "Sessão expirada",
+            description: "Sua sessão já estava expirada. Faça login novamente.",
+            variant: "default"
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Logout realizado",
+          description: "Você foi desconectado com sucesso.",
+          variant: "default"
+        });
+      }
     } catch (error) {
       const authError = error as AuthError;
       toast({
@@ -246,6 +267,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: authError.message,
         variant: "destructive"
       });
+    } finally {
+      // Força limpeza do estado local e navegação para login
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      navigate('/auth', { replace: true });
     }
   };
 
