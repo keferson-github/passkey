@@ -589,7 +589,7 @@ export const Settings = () => {
         </div>
 
         <Tabs defaultValue="account" className="space-y-4 md:space-y-6">
-          <TabsList className={`grid w-full gap-1 p-1 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-2xl md:rounded-lg bg-muted/30 md:bg-muted`}>
+          <TabsList className={`grid w-full gap-1 p-1 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-2xl md:rounded-lg bg-trnansparent md:bg-transparent`}>
             <TabsTrigger value="account" className="min-h-[44px] px-2 md:px-3 text-xs md:text-sm font-medium rounded-xl md:rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <span className="truncate">Conta</span>
             </TabsTrigger>
