@@ -347,7 +347,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[85vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto rounded-[10px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="w-5 h-5 text-primary" />
@@ -499,7 +499,7 @@ export const EditPasswordDialog: React.FC<EditPasswordDialogProps> = ({
           </div>
 
           {/* Submit Button */}
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-4 sm:gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
