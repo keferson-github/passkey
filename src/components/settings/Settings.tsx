@@ -1195,7 +1195,7 @@ export const Settings = () => {
 
       {/* Dialog para editar usuário - Mobile Optimized */}
       <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
-        <DialogContent className="w-full max-w-[95vw] mx-2 sm:max-w-[500px] sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-[98vw] mx-1 sm:max-w-[540px] sm:mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-left pb-4">
             <DialogTitle className="flex items-center gap-3 text-lg font-semibold">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">

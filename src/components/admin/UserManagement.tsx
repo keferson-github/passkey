@@ -699,7 +699,7 @@ export const UserManagement: React.FC = () => {
 
       {/* Diálogo de edição de usuário */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="w-full max-w-[85vw] sm:max-w-lg rounded-[10px]">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
@@ -762,7 +762,7 @@ export const UserManagement: React.FC = () => {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="gap-4 sm:gap-2">
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               <X className="w-4 h-4 mr-2" />
               Cancelar
