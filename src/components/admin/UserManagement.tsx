@@ -525,7 +525,7 @@ export const UserManagement: React.FC = () => {
               size="sm"
               onClick={() => handleEditUser(userItem)}
               title="Editar usuário"
-              className="h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3"
+              className="min-h-[44px] md:h-9 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3"
             >
               <Edit className="w-4 h-4" />
               <span className="text-xs md:hidden">Editar</span>
@@ -537,7 +537,7 @@ export const UserManagement: React.FC = () => {
               onClick={() => toggleUserStatus(userItem.user_id, userItem.is_active)}
               title={userItem.is_active ? "Desativar usuário" : "Ativar usuário"}
               disabled={userItem.user_id === user?.id && userItem.is_admin}
-              className={`h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 ${
+              className={`min-h-[44px] md:h-9 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 ${
                 userItem.is_active 
                   ? 'hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 dark:hover:bg-orange-950 dark:hover:border-orange-800' 
                   : 'hover:bg-green-50 hover:border-green-200 hover:text-green-600 dark:hover:bg-green-950 dark:hover:border-green-800'
@@ -561,7 +561,7 @@ export const UserManagement: React.FC = () => {
               size="sm"
               onClick={() => handleDeleteUser(userItem.user_id, userItem.display_name)}
               title="Remover usuário"
-              className="h-12 md:h-auto flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 hover:bg-red-50 hover:border-red-200 hover:text-red-600 dark:hover:bg-red-950 dark:hover:border-red-800"
+              className="min-h-[44px] md:h-9 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-0 px-2 md:px-3 hover:bg-red-50 hover:border-red-200 hover:text-red-600 dark:hover:bg-red-950 dark:hover:border-red-800"
               disabled={userItem.user_id === user?.id && userItem.is_admin}
             >
               <Trash2 className="w-4 h-4" />
