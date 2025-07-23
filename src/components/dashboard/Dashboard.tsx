@@ -278,10 +278,10 @@ export const Dashboard = () => {
         <div className="px-4 py-3 md:py-4">
           {/* Top Row - Logo and User Menu */}
           <div className="flex items-center justify-between mb-3 md:mb-0">
-            {/* Logo */}
-            <div className="flex items-center gap-2 md:gap-3">
-              <Shield className="w-6 h-6 md:w-8 md:h-8 text-primary" />
-              <h1 className="text-lg md:text-xl font-bold text-primary">PassKey</h1>
+            {/* Logo - Only visible on mobile */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Shield className="w-6 h-6 text-primary" />
+              <h1 className="text-lg font-bold text-primary">PassKey</h1>
             </div>
 
             {/* Mobile User Menu */}
@@ -392,6 +392,11 @@ export const Dashboard = () => {
 
           {/* Desktop Header Row */}
           <div className="hidden md:flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-8 h-8 text-primary" />
+              <h1 className="text-xl font-bold text-primary">PassKey</h1>
+            </div>
+
             <div className="flex-1 max-w-md mx-8">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
