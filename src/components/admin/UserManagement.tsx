@@ -519,7 +519,7 @@ export const UserManagement: React.FC = () => {
         
         {/* Mobile Action Buttons */}
         <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
-          <div className="grid grid-cols-3 md:flex gap-2 md:gap-2">
+          <div className="grid grid-cols-3 md:flex gap-2 md:gap-2" style={{ overflowX: 'hidden' }}>
             <Button
               variant="outline"
               size="sm"
@@ -604,7 +604,7 @@ export const UserManagement: React.FC = () => {
 
   return (
     <>
-      <Card className="border-0 shadow-none md:border md:shadow-md rounded-2xl md:rounded-lg overflow-hidden">
+      <Card className="border-0 shadow-none md:border md:shadow-md rounded-2xl md:rounded-lg overflow-hidden" style={{ overflowX: 'hidden' }}>
         <CardHeader className="pb-4 md:pb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
             <div>
@@ -656,7 +656,7 @@ export const UserManagement: React.FC = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 p-1 h-auto">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 p-1 h-auto" style={{ overflowX: 'hidden' }}>
                 <TabsTrigger value="all" className="min-h-[44px] md:min-h-auto text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row md:items-center">
                   <span className="font-medium">Todos</span>
                   <span className="text-xs opacity-75">({filterUsersBySearch(users).length})</span>

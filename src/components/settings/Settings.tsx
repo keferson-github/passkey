@@ -554,14 +554,15 @@ export const Settings = () => {
 
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom"
+    <div className="min-h-screen bg-background pb-safe-bottom settings-container"
          style={{ 
            paddingTop: 'env(safe-area-inset-top)', 
            paddingLeft: 'env(safe-area-inset-left)', 
            paddingRight: 'env(safe-area-inset-right)',
-           scrollBehavior: 'smooth'
+           scrollBehavior: 'smooth',
+           overflowX: 'hidden'
          }}>
-      <div className="px-4 py-4 md:px-6 md:py-6 container mx-auto max-w-6xl">
+      <div className="px-4 py-4 md:px-6 md:py-6 container mx-auto max-w-6xl" style={{ overflowX: 'hidden' }}>
         {/* Header - Mobile Side by Side Navigation */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4 mb-6 md:static md:bg-transparent md:backdrop-blur-none md:py-0 md:mx-0 md:px-0">
           <div className="flex items-center justify-between gap-3 md:gap-4">
@@ -607,7 +608,7 @@ export const Settings = () => {
           </TabsList>
 
           {/* Account Settings */}
-          <TabsContent value="account" className="space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+          <TabsContent value="account" className="tab-content space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
             <Card className="border-0 shadow-sm md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl">
               <CardHeader>
                 <CardTitle>Informações da Conta</CardTitle>
@@ -773,7 +774,7 @@ export const Settings = () => {
           </TabsContent>
 
           {/* Theme Settings - Mobile Optimized */}
-          <TabsContent value="theme" className="space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+          <TabsContent value="theme" className="tab-content space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
             <Card className="border-0 shadow-none md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl rounded-2xl md:rounded-lg overflow-hidden">
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
@@ -969,13 +970,13 @@ export const Settings = () => {
 
           {/* Users Management (Admin Only) */}
           {isAdmin && (
-            <TabsContent value="users" className="space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <TabsContent value="users" className="tab-content space-y-4 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
               <UserManagementTab />
             </TabsContent>
           )}
 
           {/* Password History - Mobile Enhanced */}
-          <TabsContent value="history" className="space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+          <TabsContent value="history" className="tab-content space-y-3 md:space-y-6 mt-4 md:mt-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
             <Card className="border-0 shadow-none md:border md:shadow-md transition-all duration-200 hover:shadow-lg md:hover:shadow-xl rounded-2xl md:rounded-lg overflow-hidden">
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="flex items-center gap-3 text-lg md:text-xl">

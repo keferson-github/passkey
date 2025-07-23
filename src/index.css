@@ -145,4 +145,41 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide horizontal scrollbar on desktop */
+  @media (min-width: 768px) {
+    html, body {
+      overflow-x: hidden !important;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    /* Specific fix for settings page */
+    .settings-container {
+      overflow-x: hidden !important;
+    }
+    
+    .settings-container .tab-content {
+      overflow-x: hidden !important;
+    }
+    
+    /* Hide scrollbars completely on desktop */
+    ::-webkit-scrollbar:horizontal {
+      display: none !important;
+      width: 0 !important;
+    }
+    
+    /* For Firefox */
+    html {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    
+    /* Force no horizontal scrolling on any element */
+    body::-webkit-scrollbar:horizontal {
+      display: none !important;
+    }
+  }
 }
