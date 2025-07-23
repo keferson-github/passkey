@@ -321,7 +321,7 @@ export const Dashboard = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="md:hidden p-1 rounded-full hover:bg-muted/50 transition-all duration-200"
+                    className="md:hidden p-1 rounded-full hover:bg-transparent"
                   >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={profile?.avatar_url} />
@@ -439,7 +439,7 @@ export const Dashboard = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-primary/20"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-transparent border border-transparent"
                     >
                       <div className="text-right">
                         <p className="text-sm font-medium">{profile?.display_name}</p>
