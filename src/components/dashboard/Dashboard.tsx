@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,13 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Search, 
-  Plus, 
-  Shield, 
-  Key, 
-  User, 
-  Settings as SettingsIcon, 
+import { Switch } from '@/components/ui/switch';
+import {
+  Search,
+  Plus,
+  Shield,
+  Key,
+  Settings as SettingsIcon,
   LogOut,
   Eye,
   EyeOff,
@@ -23,7 +23,9 @@ import {
   Loader2,
   ChevronDown,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PasswordGenerator } from './PasswordGenerator';
@@ -33,9 +35,14 @@ import { useNavigate } from 'react-router-dom';
 import { usePasswords, usePasswordStats, Password } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';
 import { useTheme } from '@/components/theme';
-import { Moon, Sun } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import { translateCategory, translateAccountType, translateSubcategory } from '@/utils/translations';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -50,7 +57,7 @@ export const Dashboard = () => {
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [showScrollTop, setShowScrollTop] = useState(false);
-  
+
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -61,7 +68,7 @@ export const Dashboard = () => {
   // Scroll detection for back to top button
   useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
       setShowScrollTop(scrollTop > 10);
     };
 
@@ -89,11 +96,11 @@ export const Dashboard = () => {
       password.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Category filter
-    const matchesCategory = selectedCategories.length === 0 || 
+    const matchesCategory = selectedCategories.length === 0 ||
       selectedCategories.includes(password.category.name);
 
     // Account type filter
-    const matchesAccountType = selectedAccountTypes.length === 0 || 
+    const matchesAccountType = selectedAccountTypes.length === 0 ||
       selectedAccountTypes.includes(password.account_type.name);
 
     // Password strength filter
@@ -115,16 +122,16 @@ export const Dashboard = () => {
 
   // Filter management functions
   const toggleCategoryFilter = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
+    setSelectedCategories(prev =>
+      prev.includes(category)
         ? prev.filter(c => c !== category)
         : [...prev, category]
     );
   };
 
   const toggleAccountTypeFilter = (accountType: string) => {
-    setSelectedAccountTypes(prev => 
-      prev.includes(accountType) 
+    setSelectedAccountTypes(prev =>
+      prev.includes(accountType)
         ? prev.filter(at => at !== accountType)
         : [...prev, accountType]
     );
@@ -141,9 +148,9 @@ export const Dashboard = () => {
   const uniqueCategories = [...new Set(passwords.map(p => p.category.name))].sort();
   const uniqueAccountTypes = [...new Set(passwords.map(p => p.account_type.name))].sort();
 
-  const hasActiveFilters = selectedCategories.length > 0 || 
-    selectedAccountTypes.length > 0 || 
-    passwordStrengthFilter !== 'all' || 
+  const hasActiveFilters = selectedCategories.length > 0 ||
+    selectedAccountTypes.length > 0 ||
+    passwordStrengthFilter !== 'all' ||
     dateFilter !== 'all';
 
   const getInitials = (name: string) => {
@@ -288,7 +295,7 @@ export const Dashboard = () => {
               >
                 <Key className="w-4 h-4" />
               </Button>
-              
+
               <Button
                 onClick={() => setShowAddPassword(true)}
                 size="sm"
@@ -300,40 +307,86 @@ export const Dashboard = () => {
 
               {/* Theme Toggle - Mobile */}
               <div className="flex items-center gap-1 md:hidden">
-                <Switch 
-                  checked={theme === 'dark'} 
+                <Switch
+                  checked={theme === 'dark'}
                   onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                   id="theme-toggle-mobile"
                   className="scale-75"
                 />
               </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/configuracoes')}
-                className="md:hidden"
-                title="Configurações"
-              >
-                <SettingsIcon className="w-4 h-4" />
-              </Button>
 
-              <Avatar className="w-8 h-8 md:w-9 md:h-9">
-                <AvatarImage src={profile?.avatar_url} />
-                <AvatarFallback className="text-xs">
-                  {getInitials(profile?.display_name || user?.email || '')}
-                </AvatarFallback>
-              </Avatar>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={signOut}
-                className="md:hidden"
-                title="Sair"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+              {/* Mobile Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="md:hidden p-1 rounded-full hover:bg-muted/50 transition-all duration-200"
+                  >
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={profile?.avatar_url} />
+                      <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-blue-500/20">
+                        {getInitials(profile?.display_name || user?.email || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 shadow-xl rounded-xl animate-in slide-in-from-top-2 duration-200"
+                >
+                  {/* User Info Header */}
+                  <div className="px-2 py-2 border-b border-border/50 bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-lg mb-1">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-8 h-8 ring-1 ring-primary/20">
+                        <AvatarImage src={profile?.avatar_url} />
+                        <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-blue-500/20">
+                          {getInitials(profile?.display_name || user?.email || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate">{profile?.display_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                        {profile?.is_admin && (
+                          <Badge variant="secondary" className="text-xs mt-0.5 bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30">
+                            <Shield className="w-2 h-2 mr-1" />
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="space-y-0.5">
+                    <DropdownMenuItem
+                      onClick={() => navigate('/configuracoes')}
+                      className="cursor-pointer px-2 py-1.5 rounded-lg hover:bg-primary/10 transition-all duration-200 group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <SettingsIcon className="w-3 h-3 text-primary" />
+                        </div>
+                        <span className="font-medium text-xs">Configurações</span>
+                      </div>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="my-1 bg-border/50" />
+
+                    <DropdownMenuItem
+                      onClick={signOut}
+                      className="cursor-pointer px-2 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 text-red-600 focus:text-red-600 dark:text-red-400 group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
+                          <LogOut className="w-3 h-3 text-red-600 dark:text-red-400" />
+                        </div>
+                        <span className="font-medium text-xs">Sair da conta</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -361,7 +414,7 @@ export const Dashboard = () => {
                 <Key className="w-4 h-4" />
                 Gerador
               </Button>
-              
+
               <Button
                 onClick={() => setShowAddPassword(true)}
                 className="flex items-center gap-2"
@@ -373,33 +426,99 @@ export const Dashboard = () => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 mr-2">
                   <Sun className="w-4 h-4" />
-                  <Switch 
-                    checked={theme === 'dark'} 
+                  <Switch
+                    checked={theme === 'dark'}
                     onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                     id="theme-toggle-desktop"
                   />
                   <Moon className="w-4 h-4" />
                 </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/configuracoes')}
-                  title="Configurações"
-                >
-                  <SettingsIcon className="w-4 h-4" />
-                </Button>
-                
-                <div className="text-right">
-                  <p className="text-sm font-medium">{profile?.display_name}</p>
-                  {profile?.is_admin && (
-                    <Badge variant="secondary" className="text-xs">Admin</Badge>
-                  )}
-                </div>
 
-                <Button variant="ghost" size="sm" onClick={signOut}>
-                  <LogOut className="w-4 h-4" />
-                </Button>
+                {/* Desktop Dropdown Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-primary/20"
+                    >
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{profile?.display_name}</p>
+                        {profile?.is_admin && (
+                          <Badge variant="secondary" className="text-xs bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30">
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
+                      <Avatar className="w-8 h-8 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                        <AvatarImage src={profile?.avatar_url} />
+                        <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-blue-500/20">
+                          {getInitials(profile?.display_name || user?.email || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-64 p-2 bg-background/95 backdrop-blur-sm border border-border/50 shadow-xl rounded-xl animate-in slide-in-from-top-2 duration-200"
+                  >
+                    {/* User Info Header */}
+                    <div className="px-3 py-2.5 border-b border-border/50 bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-lg mb-2">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 ring-1 ring-primary/20">
+                          <AvatarImage src={profile?.avatar_url} />
+                          <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-blue-500/20">
+                            {getInitials(profile?.display_name || user?.email || '')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{profile?.display_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                          {profile?.is_admin && (
+                            <Badge variant="secondary" className="text-xs mt-1 bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30">
+                              <Shield className="w-2 h-2 mr-1" />
+                              Admin
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="space-y-1">
+                      <DropdownMenuItem
+                        onClick={() => navigate('/configuracoes')}
+                        className="cursor-pointer px-3 py-2 rounded-lg hover:bg-primary/10 transition-all duration-200 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                            <SettingsIcon className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-xs">Configurações</p>
+                            <p className="text-xs text-muted-foreground">Conta e preferências</p>
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator className="my-1.5 bg-border/50" />
+
+                      <DropdownMenuItem
+                        onClick={signOut}
+                        className="cursor-pointer px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 text-red-600 focus:text-red-600 dark:text-red-400 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
+                            <LogOut className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-xs">Sair da conta</p>
+                            <p className="text-xs text-muted-foreground">Encerrar sessão</p>
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -436,7 +555,7 @@ export const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-0 shadow-sm md:border md:shadow-md">
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col md:flex-row md:items-center gap-2">
@@ -450,7 +569,7 @@ export const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-0 shadow-sm md:border md:shadow-md">
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col md:flex-row md:items-center gap-2">
@@ -464,7 +583,7 @@ export const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-0 shadow-sm md:border md:shadow-md">
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col md:flex-row md:items-center gap-2">
@@ -483,9 +602,9 @@ export const Dashboard = () => {
         {/* Filters - Mobile Optimized */}
         <div className="space-y-4 mb-6">
           <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-            <Button 
-              variant={showFilters ? "default" : "outline"} 
-              size="sm" 
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
               className="flex items-center justify-center gap-2 w-full md:w-auto min-h-[44px] md:min-h-auto"
               onClick={() => setShowFilters(!showFilters)}
             >
@@ -493,14 +612,14 @@ export const Dashboard = () => {
               <span>Filtros</span>
               {hasActiveFilters && (
                 <Badge variant="secondary" className="ml-2 bg-primary text-primary-foreground">
-                  {[...selectedCategories, ...selectedAccountTypes].length + 
-                   (passwordStrengthFilter !== 'all' ? 1 : 0) + 
-                   (dateFilter !== 'all' ? 1 : 0)}
+                  {[...selectedCategories, ...selectedAccountTypes].length +
+                    (passwordStrengthFilter !== 'all' ? 1 : 0) +
+                    (dateFilter !== 'all' ? 1 : 0)}
                 </Badge>
               )}
               <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </Button>
-            
+
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:px-3 md:py-1 bg-gradient-to-r from-primary/10 to-blue-500/10 rounded-lg border border-primary/20 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
@@ -508,7 +627,7 @@ export const Dashboard = () => {
                   {filteredPasswords.length} de {passwords.length} senhas
                 </span>
               </div>
-              
+
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
@@ -609,7 +728,7 @@ export const Dashboard = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  </div>
+                </div>
 
                 {/* Active Filters Summary */}
                 {hasActiveFilters && (
@@ -684,10 +803,10 @@ export const Dashboard = () => {
                       <CardTitle className="text-base md:text-lg font-semibold truncate">{password.title}</CardTitle>
                       <CardDescription className="text-sm truncate">{password.email}</CardDescription>
                     </div>
-                    
+
                     <div className="flex gap-2 md:gap-1 flex-shrink-0">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleEditPassword(password)}
                         className="h-9 w-9 p-0 md:h-auto md:w-auto md:p-2"
@@ -695,9 +814,9 @@ export const Dashboard = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDeletePassword(password.id, password.title)}
                         className="h-9 w-9 p-0 md:h-auto md:w-auto md:p-2 hover:bg-destructive/10 hover:text-destructive"
                         title="Excluir senha"
@@ -707,85 +826,85 @@ export const Dashboard = () => {
                     </div>
                   </div>
                 </CardHeader>
-              
-              <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
-                <div className="space-y-4">
-                  {/* Category and Type */}
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-xs">{translateCategory(password.category.name)}</Badge>
-                    <Badge variant="secondary" className="text-xs">{translateAccountType(password.account_type.name)}</Badge>
-                    {password.subcategory && (
-                      <Badge variant="outline" className="text-xs">{translateSubcategory(password.subcategory.name)}</Badge>
+
+                <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
+                  <div className="space-y-4">
+                    {/* Category and Type */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-xs">{translateCategory(password.category.name)}</Badge>
+                      <Badge variant="secondary" className="text-xs">{translateAccountType(password.account_type.name)}</Badge>
+                      {password.subcategory && (
+                        <Badge variant="outline" className="text-xs">{translateSubcategory(password.subcategory.name)}</Badge>
+                      )}
+                    </div>
+
+                    {/* Password Field */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Senha</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={visiblePasswords.has(password.id) ? "text" : "password"}
+                          value={password.password_hash}
+                          readOnly
+                          className="flex-1 h-11 md:h-auto text-base md:text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePasswordVisibility(password.id)}
+                          className="h-11 w-11 p-0 md:h-auto md:w-auto md:p-2 shrink-0"
+                          title={visiblePasswords.has(password.id) ? "Ocultar senha" : "Mostrar senha"}
+                        >
+                          {visiblePasswords.has(password.id) ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(password.password_hash, 'Senha')}
+                          className="h-11 w-11 p-0 md:h-auto md:w-auto md:p-2 shrink-0"
+                          title="Copiar senha"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {password.description && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Descrição</label>
+                        <p className="text-sm text-muted-foreground break-words">{password.description}</p>
+                      </div>
                     )}
-                  </div>
 
-                  {/* Password Field */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Senha</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type={visiblePasswords.has(password.id) ? "text" : "password"}
-                        value={password.password_hash}
-                        readOnly
-                        className="flex-1 h-11 md:h-auto text-base md:text-sm"
-                      />
+                    {/* Actions */}
+                    <div className="flex flex-col md:flex-row gap-3 md:gap-2 pt-3">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => togglePasswordVisibility(password.id)}
-                        className="h-11 w-11 p-0 md:h-auto md:w-auto md:p-2 shrink-0"
-                        title={visiblePasswords.has(password.id) ? "Ocultar senha" : "Mostrar senha"}
+                        onClick={() => copyToClipboard(password.email, 'Email')}
+                        className="flex-1 min-h-[44px] md:min-h-auto justify-center"
                       >
-                        {visiblePasswords.has(password.id) ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar email
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(password.password_hash, 'Senha')}
-                        className="h-11 w-11 p-0 md:h-auto md:w-auto md:p-2 shrink-0"
-                        title="Copiar senha"
+                        onClick={() => copyAllPasswordData(password)}
+                        className="flex-1 min-h-[44px] md:min-h-auto justify-center"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar tudo
                       </Button>
                     </div>
                   </div>
-
-                  {/* Description */}
-                  {password.description && (
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Descrição</label>
-                      <p className="text-sm text-muted-foreground break-words">{password.description}</p>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-col md:flex-row gap-3 md:gap-2 pt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(password.email, 'Email')}
-                      className="flex-1 min-h-[44px] md:min-h-auto justify-center"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copiar email
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyAllPasswordData(password)}
-                      className="flex-1 min-h-[44px] md:min-h-auto justify-center"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copiar tudo
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
@@ -807,7 +926,7 @@ export const Dashboard = () => {
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
+                <Button
                   onClick={() => setShowAddPassword(true)}
                   className="min-h-[44px] px-6"
                 >
@@ -815,7 +934,7 @@ export const Dashboard = () => {
                   {searchTerm || hasActiveFilters ? 'Adicionar nova senha' : 'Adicionar primeira senha'}
                 </Button>
                 {(searchTerm || hasActiveFilters) && (
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => {
                       setSearchTerm('');
@@ -848,22 +967,22 @@ export const Dashboard = () => {
       )}
 
       {/* Dialogs */}
-      <PasswordGenerator 
-        open={showPasswordGenerator} 
-        onOpenChange={setShowPasswordGenerator} 
-      />
-      
-      <AddPasswordDialog 
-        open={showAddPassword} 
-        onOpenChange={setShowAddPassword}
-        onSuccess={handleAddPasswordSuccess} 
+      <PasswordGenerator
+        open={showPasswordGenerator}
+        onOpenChange={setShowPasswordGenerator}
       />
 
-      <EditPasswordDialog 
-        open={showEditPassword} 
+      <AddPasswordDialog
+        open={showAddPassword}
+        onOpenChange={setShowAddPassword}
+        onSuccess={handleAddPasswordSuccess}
+      />
+
+      <EditPasswordDialog
+        open={showEditPassword}
         onOpenChange={handleEditPasswordClose}
         password={editingPassword}
-        onSuccess={handleEditPasswordSuccess} 
+        onSuccess={handleEditPasswordSuccess}
       />
 
       {/* Back to Top Button */}
@@ -881,7 +1000,7 @@ export const Dashboard = () => {
         </div>
       )}
 
-      
+
     </div>
   );
 };
