@@ -34,6 +34,7 @@
 
 #### Modo Escuro
 <img width="1901" height="905" alt="dark-mode-passkey" src="https://github.com/user-attachments/assets/a152324b-869f-464e-a3bc-0889550458b9" />
+
 #### Modo Claro
 <img width="1901" height="906" alt="light-mode-passkey" src="https://github.com/user-attachments/assets/f9f754ae-fa83-434a-8a77-09e424f637b0" />
 
