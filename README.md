@@ -56,5 +56,4 @@
 
 ## Histórico de Senhas
 <img width="1902" height="903" alt="historico-de-senhas-passkey" src="https://github.com/user-attachments/assets/1735f3a1-24b9-400b-8477-005e50f44753" />
-
 ### O projeto PassKey foi desenvolvido com o objetivo de ajudar as pessoas no gerenciamento e criação de senhas, para diferentes tipos de plataformas.
