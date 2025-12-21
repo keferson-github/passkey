@@ -2,7 +2,9 @@
 ## Trata-se de um sistema de gerenciamento e criação de senhas para uso pessoal
 ### Conheça o projeto: https://passkey.techsolutionspro.com.br/auth
 
-#### Crie sua conta e comece a gerenciar suas senhas de forma simplificada!
+#### Credenciais de Acesso
+- Usuário: teste@gmail.com
+- Senha: Teste$123
 
 - Vite
 - React
