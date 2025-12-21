@@ -6,6 +6,8 @@
 - Usuário: teste@gmail.com
 - Senha: Teste$123
 
+## Tecnologias
+
 - Vite
 - React
 - TypeScript
